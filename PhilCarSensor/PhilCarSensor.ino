@@ -23,19 +23,17 @@ Removed all digital and analog pins not relevant to this sketch
 
 */
 
-const boolean debugMode = true;
-
-#include <SoftwareSerial.h>
+#include <Time.h>
 #include <TinyGPS.h>
 #include <Wire.h>
 
 #define compAddr 0x1E  // Compass
 #define gyroAddr 0x69  // Gyroscope
 
+#define debugMode
+
 // Digital pins
-const int powerLED = 4;  // Pin for LED to indicate entry of main loop (program start)
-const int tripLED = 5;  // Pin for LED to indicate detection of landing
-const int gprsPowPin = 9;  // Pin for software power-up of GPRS shield
+const int readyOut = 2;  // Ready signal for ArduBerry functions
 // Analog pins
 const int accelXPin = A15;  // Accelerometer X axis
 const int accelYPin = A14;  // Accelerometer Y axis
@@ -45,65 +43,128 @@ const int accelZPin = A13;  // Accelerometer Z axis
 int accelX, accelY, accelZ;
 int gyroX, gyroY, gyroZ;
 int compX, compY, compZ;
+
 // Sensor Offsets
 int accelXOffset, accelYOffset, accelZOffset;
 int gyroOffset, gyroXOffset, gyroYOffset, gyroZOffset;
+
 // GPS Global Variables
-unsigned long age;
-float flat, flon, altitude;
+const int gpsSatMinimum = 4;  // May want to change to 6 for real launch
+const int gpsHDOPMinimum = 250;  // May want to change to 200 for real launch
 int satellites, hdop;
+float gpsLat, gpsLon, gpsAltitudeFt, gpsSpeedMPH, gpsCourse;
+
 // Strings
 String accelerometerString, compassString, gyroscopeString, gpsString;
 
 // Library Definitions
-SoftwareSerial smsSerial(7, 8);
 TinyGPS gps;  // GPS
 
+// Booleans
+boolean gpsLock = false;
+boolean readGPSDateTime = false;
+boolean sensorZeroMode = false;
+
 void setup() {
+  pinMode(readyOut, OUTPUT);
+  digitalWrite(readyOut, LOW);
+
   Serial.begin(9600);  // Debug Serial
 
-  /*Serial1.begin(4800);  // GPS Serial
-  if (!Serial1.available()) {
+  Serial1.begin(4800);  // GPS Serial
+  if (!Serial1.available()) {  // Wait for GPS data stream to begin before proceeding
     while (!Serial1.available()) {
       delay(1);
     }
-  }*/
+  }
+  
+  Serial2.begin(19200);  // Data connection to ArduBerry
 
-  smsSerial.begin(19200);  // SMS Serial
+  Wire.begin();  // Initiate I2C connection
 
-  // Software power-up of GPRS shield
-  digitalWrite(gprsPowPin, LOW);
-  delay(100);
-  digitalWrite(gprsPowPin, HIGH);
-  delay(500);
-  digitalWrite(gprsPowPin, LOW);
-  delay(100);
+  // Setup I2C sensors
+  i2cWriteByte(compAddr, 0x0, 0x10);  // Compass - Default value
+  i2cWriteByte(compAddr, 0x1, 0x20);  // Compass - Default value
+  i2cWriteByte(compAddr, 0x2, 0x0);  // Compass - \Continuous measurement mode
+  delay(100);  // Wait to synchronize
+  i2cWriteByte(gyroAddr, 0x20, 0x1F);  // Gyroscope - Turn on all axes and disable power down
+  i2cWriteByte(gyroAddr, 0x22, 0x08);  // Gyroscope - Enable control ready signal
+  i2cWriteByte(gyroAddr, 0x23, 0x80);  // Gyroscope - Set scale (0x80 = 500deg/sec)
+  delay(100);  // Wait to synchronize
 
-  Wire.begin();
-
-  Serial.println(F("Initiating component testing."));
+  // Wait for GPS to acquire enough satellites and have sufficient HDOP (precision)
+  readGPS();
+  if (satellites < gpsSatMinimum || hdop > gpsHDOPMinimum) {
+    Serial.println();
+    while (satellites < gpsSatMinimum || hdop > gpsHDOPMinimum) {
+      readGPS();
+#ifdef debugMode
+      Serial.print(F("Sats: "));
+      Serial.println(satellites);
+      Serial.print(F("HDOP: "));
+      Serial.println(hdop);
+#endif
+      delay(5000);
+    }
+  }
+#ifdef debugMode
+  Serial.println(F("GPS satellites acquired with sufficient precision."));
   Serial.println();
+  delay(2500);
+#endif
+  gpsLock = true;
+
+  // Set internal date and time from GPS
+  readGPSDateTime = true;
+  readGPS();
+#ifdef debugMode
+  Serial.println(F("Date & Time set from GPS data."));
+  Serial.println();
+  delay(2500);
+#endif
+  readGPSDateTime = false;
+
+  digitalWrite(readyOut, HIGH);
 }
 
 void loop() {
-    readAccelerometer();
-    readCompass();
-    readGyroscope();
-    delay(1000);
+  readGPS();
+#ifdef debugMode
+  Serial.print(F("GPS Values:    "));
+  Serial.print(gpsLat, 6);
+  Serial.print(F(","));
+  Serial.print(gpsLon, 6);
+  Serial.print(F(","));
+  Serial.println(gpsString);
+#endif
+  readAccelerometer();
+  readCompass();
+  readGyroscope();
+#ifdef debugMode
+  Serial.println();
+#endif
+  delay(1000);
 }
 
 // Pololu Accelerometer
 void readAccelerometer() {
-  int accelX = analogRead(accelXPin);
-  int accelY = analogRead(accelYPin);
-  int accelZ = analogRead(accelZPin);
+  if (sensorZeroMode == false) {
+    int accelX = analogRead(accelXPin) - accelXOffset;
+    int accelY = analogRead(accelYPin) - accelYOffset;
+    int accelZ = analogRead(accelZPin) - accelZOffset;
 
-  String accelerometerString = String(accelX) + "," + String(accelY) + "," + String(accelZ);
+    String accelerometerString = String(accelX) + "," + String(accelY) + "," + String(accelZ);
 
 #ifdef debugMode
-  Serial.print(F("Accel. values: "));
-  Serial.println(accelerometerString);
+    Serial.print(F("Accel. values: "));
+    Serial.println(accelerometerString);
 #endif
+  }
+  else {
+    accelX = analogRead(accelXPin);
+    accelY = analogRead(accelYPin);
+    accelZ = analogRead(accelZPin);
+  }
 }
 
 // Compass
@@ -128,11 +189,11 @@ void readCompass() {
     String compassString = String(compX) + "," + String(compY) + "," + String(compZ);
 
 #ifdef debugMode
-    Serial.print(F("Comp. values: "));
+    Serial.print(F("Comp. values:  "));
     Serial.println(compassString);
 #endif
   }
-  else if(debugMode == true) Serial.println(F("Failed to read from sensor."));
+  else Serial.println(F("Failed to read from sensor."));
 }
 
 void readGyroscope() {
@@ -154,16 +215,23 @@ void readGyroscope() {
     uint16_t y = y_msb << 8 | y_lsb;
     uint16_t z = z_msb << 8 | z_lsb;
 
-    gyroX = (int)x;
-    gyroY = (int)y;
-    gyroZ = (int)z;
+    if (sensorZeroMode == false) {
+      gyroX = (int)x - gyroXOffset;
+      gyroY = (int)y - gyroYOffset;
+      gyroZ = (int)z - gyroZOffset;
 
-    String gyroString = String(gyroX) + "," + String(gyroY) + "," + String(gyroZ);
+      String gyroString = String(gyroX) + "," + String(gyroY) + "," + String(gyroZ);
 
 #ifdef debugMode
-    Serial.print(F("Gyro. values: "));
-    Serial.println(gyroString);
+      Serial.print(F("Gyro. values:  "));
+      Serial.println(gyroString);
 #endif
+    }
+    else {
+      gyroX = (int)x;
+      gyroY = (int)y;
+      gyroZ = (int)z;
+    }
   }
   else Serial.println(F("Failed to read from sensor."));
 }
@@ -189,21 +257,7 @@ void i2cWriteByte(uint8_t addr, uint8_t reg, byte data) {
   Wire.endTransmission();  // End the write sequence; bytes are actually transmitted now
 }
 
-void gprsDateTime() {
-  Serial2.println("AT+CCLK?");
-  if (!Serial2.available()) {
-    while (!Serial2.available()) {
-      delay(1);
-    }
-  }
-  while (Serial2.available()) {
-    char c = Serial2.read();
-    Serial.print(c);
-    delay(10);
-  }
-}
-
-void gpsGetData() {
+void readGPS() {
   boolean newdata = false;
   unsigned long start = millis();
   while (millis() - start < 1000) { // Update every 5 seconds
@@ -213,16 +267,82 @@ void gpsGetData() {
 }
 
 void gpsdump(TinyGPS &gps) {
-  satellites = gps.satellites();
-  hdop = gps.hdop();
-  gps.f_get_position(&flat, &flon, &age);
-  altitude = gps.f_altitude();
+  float flat, flon, altitude;
+  unsigned long age;
+  byte month, day, hour, minute, second, hundredths;
+  int year;
+
+  if (gpsLock == false) {
+    satellites = gps.satellites();
+    hdop = gps.hdop();
+  }
+  else {
+    if (readGPSDateTime == true) {
+      const int gpsGmtOffsetHours = -5;  // Offset in hours of current timezone from GMT (I think it only accepts + vals b/c it gets converted to a 'byte')
+      gps.crack_datetime(&year, &month, &day, &hour, &minute, &second, &hundredths, &age);
+      setTime(hour, minute, second, day, month, year);
+      adjustTime(gpsGmtOffsetHours * SECS_PER_HOUR);
+    }
+    else {
+      gps.f_get_position(&flat, &flon, &age);
+      gpsLat = flat;
+      gpsLon = flon;
+      altitude = gps.f_altitude();
+      gpsAltitudeFt = altitude / 3.048;
+      gpsCourse = gps.f_course();
+      gpsSpeedMPH = gps.f_speed_mph();
+
+      gpsString = String(satellites) + "," + String(hdop) + "," + String(gpsAltitudeFt) + "," + String(gpsCourse) + "," + String(gpsSpeedMPH);
+    }
+  }
 }
 
-// Feed
 boolean feedgps() {
   while (Serial1.available()) {
     if (gps.encode(Serial1.read())) return true;
   }
   return false;
+}
+
+// Calibration & Configuration
+void zeroSensors() {
+  sensorZeroMode = true;
+  const int sampleNumber = 10;
+
+  int accelXTot = 0;
+  int accelYTot = 0;
+  int accelZTot = 0;
+  int gyroXTot = 0;
+  int gyroYTot = 0;
+  int gyroZTot = 0;
+
+  // Accelerometer
+  for (int x = 0; x < sampleNumber; x++) {
+    readAccelerometer();
+    accelXTot += accelX;
+    accelYTot += accelY;
+    accelZTot += accelZ;
+    delay(100);
+  }
+  accelXOffset = accelXTot / sampleNumber;
+  accelYOffset = accelYTot / sampleNumber;
+  accelZOffset = accelZTot / sampleNumber;
+
+  // Gyroscope
+  for (int y = 0; y < sampleNumber; y++) {
+    readGyroscope();
+    if (abs(gyroX) > gyroOffset) gyroOffset = gyroX;
+    if (abs(gyroY) > gyroOffset) gyroOffset = gyroY;
+    if (abs(gyroZ) > gyroOffset) gyroOffset = gyroZ;
+    gyroXTot += gyroX;
+    gyroYTot += gyroY;
+    gyroZTot += gyroZ;
+    delay(100);
+  }
+  gyroOffset = sqrt(gyroOffset);
+  gyroXOffset = (gyroXTot / sampleNumber) / 10;
+  gyroYOffset = (gyroYTot / sampleNumber) / 10;
+  gyroZOffset = (gyroZTot / sampleNumber) / 10;
+
+  sensorZeroMode = false;
 }
