@@ -1,27 +1,17 @@
-/* Testing framework for all components in HAB telemetry package */
-// CFC sensor --> A11
-// Methane sensor --> A12
-// PIR sensor --> 6
-// Smoke signal relay --> 8
-// Siren relay --> 7
-// Altimeter --> I2C
-// Sensiron (Parallax) temp/humidity sensor --> I2C
-// Accelerometer --> A13/A14/A15
-// Compass --> I2C
-// Gyroscope --> I2C
-// GPS --> Serial1
-// SD shield --> "SdInfo" sketch in SdFat examples
-// GPRS shield --> Call of "AT+CCLK?" AT command to check time
-
 /*
-Changes:
-tripLED --> tripLED
-readyLED --> powerLED
+  Sensor Unit (Phil's Car - 1973 Datsun 240Z)
 
-Removed all digital and analog pins not relevant to this sketch
-
-
+  Components:
+  1) Shields
+    - Custom sensor protoshield
+      - Accelerometer
+      - Compass
+      - Gyroscope
+  2) Components
+    - 12V Siren
 */
+
+//#define debugMode
 
 #include <Time.h>
 #include <TinyGPS.h>
@@ -29,8 +19,6 @@ Removed all digital and analog pins not relevant to this sketch
 
 #define compAddr 0x1E  // Compass
 #define gyroAddr 0x69  // Gyroscope
-
-#define debugMode
 
 // Digital pins
 const int readyOut = 2;  // Ready signal for ArduBerry functions
@@ -64,6 +52,7 @@ TinyGPS gps;  // GPS
 boolean gpsLock = false;
 boolean readGPSDateTime = false;
 boolean sensorZeroMode = false;
+boolean dataUpdated = false;
 
 void setup() {
   pinMode(readyOut, OUTPUT);
@@ -74,10 +63,10 @@ void setup() {
   Serial1.begin(4800);  // GPS Serial
   if (!Serial1.available()) {  // Wait for GPS data stream to begin before proceeding
     while (!Serial1.available()) {
-      delay(1);
+      delay(10);
     }
   }
-  
+
   Serial2.begin(19200);  // Data connection to ArduBerry
 
   Wire.begin();  // Initiate I2C connection
@@ -110,7 +99,7 @@ void setup() {
 #ifdef debugMode
   Serial.println(F("GPS satellites acquired with sufficient precision."));
   Serial.println();
-  delay(2500);
+  delay(1000);
 #endif
   gpsLock = true;
 
@@ -120,7 +109,7 @@ void setup() {
 #ifdef debugMode
   Serial.println(F("Date & Time set from GPS data."));
   Serial.println();
-  delay(2500);
+  delay(100);
 #endif
   readGPSDateTime = false;
 
@@ -128,22 +117,317 @@ void setup() {
 }
 
 void loop() {
-  readGPS();
-#ifdef debugMode
-  Serial.print(F("GPS Values:    "));
-  Serial.print(gpsLat, 6);
-  Serial.print(F(","));
-  Serial.print(gpsLon, 6);
-  Serial.print(F(","));
-  Serial.println(gpsString);
+#ifndef debugMode
+  if (!Serial2.available()) {
+    while (!Serial2.available()) {
+      delay(100);
+    }
+  }
+  String commandString = "";
+  if (Serial2.available()) {
+    while (Serial2.available()) {
+      char c = Serial2.read();
+      commandString += c;
+      delay(100);
+    }
+    Serial.print(F("commandString: "));
+    Serial.println(commandString);
+  }
+#else
+  if (!Serial.available()) {
+    while (!Serial.available()) {
+      delay(100);
+    }
+  }
+  String commandString = "";
+  if (Serial.available()) {
+    while (Serial.available()) {
+      char c = Serial.read();
+      commandString += c;
+      delay(100);
+    }
+  }
 #endif
-  readAccelerometer();
-  readCompass();
-  readGyroscope();
+  if (commandString.length() == 1) {
+    int menuCommand = commandString.toInt();
+    Serial.println(F("Issuing command."));
+    modeMenu(menuCommand);
 #ifdef debugMode
-  Serial.println();
+    Serial.println(F("Command issued."));
+    Serial.println();
 #endif
+  }
+  else {
+#ifdef debugMode
+    Serial.println(F("Invalid command."));
+#endif
+  }
+  /*#ifdef debugMode
+    Serial.print(F("Updated:           "));
+    Serial.println(dataUpdated);
+    Serial.print(F("Satellites (HDOP): "));
+    Serial.print(satellites);
+    Serial.print(F(" ("));
+    Serial.print(hdop);
+    Serial.println(F(")"));
+    Serial.print(F("GPS Coord:         "));
+    Serial.print(gpsLat, 6 );
+    Serial.print(F(", "));
+    Serial.println(gpsLon, 6);
+    Serial.print(F("GPS Alt. Ft:       "));
+    Serial.println(gpsAltitudeFt);
+    Serial.print(F("GPS Speed MPH:     "));
+    Serial.println(gpsSpeedMPH);
+    Serial.print(F("GPS Course:        "));
+    Serial.println(gpsCourse);
+    Serial.print(F("Accel. values:     "));
+    Serial.println(accelerometerString);
+    Serial.print(F("Comp. values:      "));
+    Serial.println(compassString);
+    Serial.print(F("Gyro. values:      "));
+    Serial.println(gyroscopeString);
+    Serial.println();
+  #endif*/
+  dataUpdated = false;
   delay(1000);
+}
+
+// Mode menu controlled by ArduBerry via serial connection (Serial2 tx)
+void modeMenu(int menuCommand) {
+  switch (menuCommand) {
+    case 0:
+#ifdef debugMode
+      Serial.println(F("Waiting for calibration command..."));
+      digitalWrite(readyOut, LOW);
+      if (!Serial.available()) {
+        while (!Serial.available()) {
+          delay(10);
+        }
+      }
+      if (Serial.available()) {
+        while (Serial.available()) {
+          char c = Serial.read();
+          if (c == '0') {
+            zeroSensors();
+            digitalWrite(readyOut, HIGH);
+            Serial.println(F("Calibration complete."));
+            break;
+          }
+          else Serial.println(F("Invalid calibration command."));
+          delay(10);
+        }
+      }
+#else
+      digitalWrite(readyOut, LOW);
+      if (!Serial2.available()) {
+        while (!Serial2.available()) {
+          delay(10);
+        }
+      }
+      if (Serial2.available()) {
+        while (Serial2.available()) {
+          char c = Serial2.read();
+          if (c == '0') {
+            zeroSensors();
+            digitalWrite(readyOut, HIGH);
+            break;
+          }
+          delay(10);
+        }
+      }
+#endif
+      break;
+    case 1:
+      readGPS();
+      if (gpsLat != 0 && gpsLon != 0) dataUpdated = true;
+      sendData(1);
+      break;
+    case 2:
+      readAccelerometer();
+      readCompass();
+      readGyroscope();
+      if (gpsLat != 0 && gpsLon != 0) dataUpdated = true;
+      sendData(2);
+      break;
+    case 3:
+      readGPS();
+      readAccelerometer();
+      readCompass();
+      readGyroscope();
+      if (gpsLat != 0 && gpsLon != 0) dataUpdated = true;
+      sendData(3);
+      break;
+    case 4:
+      sendData(4);
+      break;
+    default:
+      break;
+  }
+}
+
+void sendData(int menuCommand) {
+  switch (menuCommand) {
+    case 0:
+      break;
+    case 1:  // GPS
+#ifdef debugMode
+      Serial.print("S");
+      Serial.print("D");
+      Serial.print(dataUpdated);
+      Serial.print("L");
+      Serial.print(satellites);
+      Serial.print("H");
+      Serial.print(hdop);
+      Serial.print("T");
+      Serial.print(gpsLat, 6);
+      Serial.print("N");
+      Serial.print(gpsLon, 6);
+      Serial.print("a");
+      Serial.print(gpsAltitudeFt);
+      Serial.print("s");
+      Serial.print(gpsSpeedMPH);
+      Serial.print("c");
+      Serial.print(gpsCourse);
+      Serial.print("E");
+      Serial.println();
+#else
+      Serial2.print("S");
+      Serial2.print("D");
+      Serial2.print(dataUpdated);
+      Serial2.print("L");
+      Serial2.print(satellites);
+      Serial2.print("H");
+      Serial2.print(hdop);
+      Serial2.print("T");
+      Serial2.print(gpsLat, 6);
+      Serial2.print("N");
+      Serial2.print(gpsLon, 6);
+      Serial2.print("a");
+      Serial2.print(gpsAltitudeFt);
+      Serial2.print("s");
+      Serial2.print(gpsSpeedMPH);
+      Serial2.print("c");
+      Serial2.print(gpsCourse);
+      Serial2.print("E");
+#endif
+      break;
+    case 2:
+#ifdef debugMode
+      Serial.print("S");
+      Serial.print("D");
+      Serial.print(dataUpdated);
+      Serial.print("A");
+      Serial.print(accelerometerString);
+      Serial.print("C");
+      Serial.print(compassString);
+      Serial.print("G");
+      Serial.print(gyroscopeString);
+      Serial.print("E");
+      Serial.println();
+#else
+      Serial2.print("S");
+      Serial2.print("D");
+      Serial2.print(dataUpdated);
+      Serial2.print("A");
+      Serial2.print(accelerometerString);
+      Serial2.print("C");
+      Serial2.print(compassString);
+      Serial2.print("G");
+      Serial2.print(gyroscopeString);
+      Serial2.print("E");
+#endif
+      break;
+    case 3:
+#ifdef debugMode
+      Serial.print("S");
+      Serial.print("D");
+      Serial.print(dataUpdated);
+      Serial.print("L");
+      Serial.print(satellites);
+      Serial.print("H");
+      Serial.print(hdop);
+      Serial.print("T");
+      Serial.print(gpsLat, 6);
+      Serial.print("N");
+      Serial.print(gpsLon, 6);
+      Serial.print("a");
+      Serial.print(gpsAltitudeFt);
+      Serial.print("s");
+      Serial.print(gpsSpeedMPH);
+      Serial.print("c");
+      Serial.print(gpsCourse);
+      Serial.print("A");
+      Serial.print(accelerometerString);
+      Serial.print("C");
+      Serial.print(compassString);
+      Serial.print("G");
+      Serial.print(gyroscopeString);
+      Serial.print("E");
+      Serial.println();
+#else
+      Serial2.print("S");
+      Serial2.print("D");
+      Serial2.print(dataUpdated);
+      Serial2.print("L");
+      Serial2.print(satellites);
+      Serial2.print("H");
+      Serial2.print(hdop);
+      Serial2.print("T");
+      Serial2.print(gpsLat, 6);
+      Serial2.print("N");
+      Serial2.print(gpsLon, 6);
+      Serial2.print("a");
+      Serial2.print(gpsAltitudeFt);
+      Serial2.print("s");
+      Serial2.print(gpsSpeedMPH);
+      Serial2.print("c");
+      Serial2.print(gpsCourse);
+      Serial2.print("A");
+      Serial2.print(accelerometerString);
+      Serial2.print("C");
+      Serial2.print(compassString);
+      Serial2.print("G");
+      Serial2.print(gyroscopeString);
+      Serial2.print("E");
+#endif
+      break;
+    case 4:
+#ifdef debugMode
+      Serial.print("S");
+      Serial.print("M");
+      Serial.print(month());
+      Serial.print("D");
+      Serial.print(day());
+      Serial.print("Y");
+      Serial.print(year());
+      Serial.print("h");
+      Serial.print(hour());
+      Serial.print("m");
+      Serial.print(minute());
+      Serial.print("s");
+      Serial.print(second());
+      Serial.print("E");
+      Serial.println();
+#else
+      Serial2.print("S");
+      Serial2.print("M");
+      Serial2.print(month());
+      Serial2.print("D");
+      Serial2.print(day());
+      Serial2.print("Y");
+      Serial2.print(year());
+      Serial2.print("h");
+      Serial2.print(hour());
+      Serial2.print("m");
+      Serial2.print(minute());
+      Serial2.print("s");
+      Serial2.print(second());
+      Serial2.print("E");
+#endif
+      break;
+    default:
+      break;
+  }
 }
 
 // Pololu Accelerometer
@@ -153,12 +437,7 @@ void readAccelerometer() {
     int accelY = analogRead(accelYPin) - accelYOffset;
     int accelZ = analogRead(accelZPin) - accelZOffset;
 
-    String accelerometerString = String(accelX) + "," + String(accelY) + "," + String(accelZ);
-
-#ifdef debugMode
-    Serial.print(F("Accel. values: "));
-    Serial.println(accelerometerString);
-#endif
+    accelerometerString = String(accelX) + "," + String(accelY) + "," + String(accelZ);
   }
   else {
     accelX = analogRead(accelXPin);
@@ -186,12 +465,7 @@ void readCompass() {
     uint8_t compY = y_msb << 8 | y_lsb;
     uint8_t compZ = z_msb << 8 | z_lsb;
 
-    String compassString = String(compX) + "," + String(compY) + "," + String(compZ);
-
-#ifdef debugMode
-    Serial.print(F("Comp. values:  "));
-    Serial.println(compassString);
-#endif
+    compassString = String(compX) + "," + String(compY) + "," + String(compZ);
   }
   else Serial.println(F("Failed to read from sensor."));
 }
@@ -220,12 +494,7 @@ void readGyroscope() {
       gyroY = (int)y - gyroYOffset;
       gyroZ = (int)z - gyroZOffset;
 
-      String gyroString = String(gyroX) + "," + String(gyroY) + "," + String(gyroZ);
-
-#ifdef debugMode
-      Serial.print(F("Gyro. values:  "));
-      Serial.println(gyroString);
-#endif
+      gyroscopeString = String(gyroX) + "," + String(gyroY) + "," + String(gyroZ);
     }
     else {
       gyroX = (int)x;
@@ -266,7 +535,7 @@ void readGPS() {
   }
 }
 
-void gpsdump(TinyGPS &gps) {
+void gpsdump(TinyGPS & gps) {
   float flat, flon, altitude;
   unsigned long age;
   byte month, day, hour, minute, second, hundredths;
