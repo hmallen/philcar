@@ -22,6 +22,7 @@
 
 // Digital pins
 const int readyOut = 2;  // Ready signal for ArduBerry functions
+const int sirenRelay = 3;  // Relay gating power to intruder siren
 // Analog pins
 const int accelXPin = A15;  // Accelerometer X axis
 const int accelYPin = A14;  // Accelerometer Y axis
@@ -57,8 +58,10 @@ boolean dataUpdated = false;
 void setup() {
   pinMode(readyOut, OUTPUT);
   digitalWrite(readyOut, LOW);
+  pinMode(sirenRelay, OUTPUT);
+  digitalWrite(sirenRelay, LOW);
 
-  Serial.begin(9600);  // Debug Serial
+  Serial.begin(38400);  // Debug Serial
 
   Serial1.begin(4800);  // GPS Serial
   if (!Serial1.available()) {  // Wait for GPS data stream to begin before proceeding
@@ -67,7 +70,7 @@ void setup() {
     }
   }
 
-  Serial2.begin(19200);  // Data connection to ArduBerry
+  Serial2.begin(38400);  // Data connection to ArduBerry
 
   Wire.begin();  // Initiate I2C connection
 
@@ -87,33 +90,36 @@ void setup() {
     Serial.println();
     while (satellites < gpsSatMinimum || hdop > gpsHDOPMinimum) {
       readGPS();
-#ifdef debugMode
+//#ifdef debugMode
       Serial.print(F("Sats: "));
       Serial.println(satellites);
       Serial.print(F("HDOP: "));
       Serial.println(hdop);
-#endif
+//#endif
       delay(5000);
     }
   }
-#ifdef debugMode
+//#ifdef debugMode
   Serial.println(F("GPS satellites acquired with sufficient precision."));
   Serial.println();
   delay(1000);
-#endif
+//#endif
   gpsLock = true;
 
   // Set internal date and time from GPS
   readGPSDateTime = true;
   readGPS();
-#ifdef debugMode
+//#ifdef debugMode
   Serial.println(F("Date & Time set from GPS data."));
   Serial.println();
   delay(100);
-#endif
+//#endif
   readGPSDateTime = false;
 
   digitalWrite(readyOut, HIGH);
+//#ifdef debugMode
+  Serial.println(F("Setup complete."));
+//#endif
 }
 
 void loop() {
@@ -150,44 +156,13 @@ void loop() {
 #endif
   if (commandString.length() == 1) {
     int menuCommand = commandString.toInt();
-    Serial.println(F("Issuing command."));
     modeMenu(menuCommand);
-#ifdef debugMode
-    Serial.println(F("Command issued."));
-    Serial.println();
-#endif
   }
   else {
 #ifdef debugMode
     Serial.println(F("Invalid command."));
 #endif
   }
-  /*#ifdef debugMode
-    Serial.print(F("Updated:           "));
-    Serial.println(dataUpdated);
-    Serial.print(F("Satellites (HDOP): "));
-    Serial.print(satellites);
-    Serial.print(F(" ("));
-    Serial.print(hdop);
-    Serial.println(F(")"));
-    Serial.print(F("GPS Coord:         "));
-    Serial.print(gpsLat, 6 );
-    Serial.print(F(", "));
-    Serial.println(gpsLon, 6);
-    Serial.print(F("GPS Alt. Ft:       "));
-    Serial.println(gpsAltitudeFt);
-    Serial.print(F("GPS Speed MPH:     "));
-    Serial.println(gpsSpeedMPH);
-    Serial.print(F("GPS Course:        "));
-    Serial.println(gpsCourse);
-    Serial.print(F("Accel. values:     "));
-    Serial.println(accelerometerString);
-    Serial.print(F("Comp. values:      "));
-    Serial.println(compassString);
-    Serial.print(F("Gyro. values:      "));
-    Serial.println(gyroscopeString);
-    Serial.println();
-  #endif*/
   dataUpdated = false;
   delay(1000);
 }
@@ -195,6 +170,7 @@ void loop() {
 // Mode menu controlled by ArduBerry via serial connection (Serial2 tx)
 void modeMenu(int menuCommand) {
   switch (menuCommand) {
+    // Sensor calibration (zeroing)
     case 0:
 #ifdef debugMode
       Serial.println(F("Waiting for calibration command..."));
@@ -237,11 +213,15 @@ void modeMenu(int menuCommand) {
       }
 #endif
       break;
+
+    // Read GPS
     case 1:
       readGPS();
       if (gpsLat != 0 && gpsLon != 0) dataUpdated = true;
       sendData(1);
       break;
+
+    // Read sensors
     case 2:
       readAccelerometer();
       readCompass();
@@ -249,17 +229,13 @@ void modeMenu(int menuCommand) {
       if (gpsLat != 0 && gpsLon != 0) dataUpdated = true;
       sendData(2);
       break;
+
+    // Read GPS for date & time only
     case 3:
       readGPS();
-      readAccelerometer();
-      readCompass();
-      readGyroscope();
-      if (gpsLat != 0 && gpsLon != 0) dataUpdated = true;
       sendData(3);
       break;
-    case 4:
-      sendData(4);
-      break;
+
     default:
       break;
   }
@@ -269,48 +245,54 @@ void sendData(int menuCommand) {
   switch (menuCommand) {
     case 0:
       break;
-    case 1:  // GPS
+
+    // GPS
+    case 1:
 #ifdef debugMode
       Serial.print("S");
+      Serial.print("C");
+      Serial.print(gpsLat, 6);
+      Serial.print(",");
+      Serial.print(gpsLon, 6);
       Serial.print("D");
       Serial.print(dataUpdated);
-      Serial.print("L");
+      Serial.print(",");
       Serial.print(satellites);
-      Serial.print("H");
+      Serial.print(",");
       Serial.print(hdop);
-      Serial.print("T");
-      Serial.print(gpsLat, 6);
-      Serial.print("N");
-      Serial.print(gpsLon, 6);
-      Serial.print("a");
+      Serial.print(",");
       Serial.print(gpsAltitudeFt);
-      Serial.print("s");
+      Serial.print(",");
       Serial.print(gpsSpeedMPH);
-      Serial.print("c");
+      Serial.print(",");
       Serial.print(gpsCourse);
       Serial.print("E");
       Serial.println();
+      Serial.flush();
 #else
       Serial2.print("S");
+      Serial2.print("C");
+      Serial2.print(gpsLat, 6);
+      Serial2.print(",");
+      Serial2.print(gpsLon, 6);
       Serial2.print("D");
       Serial2.print(dataUpdated);
-      Serial2.print("L");
+      Serial2.print(",");
       Serial2.print(satellites);
-      Serial2.print("H");
+      Serial2.print(",");
       Serial2.print(hdop);
-      Serial2.print("T");
-      Serial2.print(gpsLat, 6);
-      Serial2.print("N");
-      Serial2.print(gpsLon, 6);
-      Serial2.print("a");
+      Serial2.print(",");
       Serial2.print(gpsAltitudeFt);
-      Serial2.print("s");
+      Serial2.print(",");
       Serial2.print(gpsSpeedMPH);
-      Serial2.print("c");
+      Serial2.print(",");
       Serial2.print(gpsCourse);
       Serial2.print("E");
+      Serial2.flush();
 #endif
       break;
+
+    // Sensors
     case 2:
 #ifdef debugMode
       Serial.print("S");
@@ -324,6 +306,7 @@ void sendData(int menuCommand) {
       Serial.print(gyroscopeString);
       Serial.print("E");
       Serial.println();
+      Serial.flush();
 #else
       Serial2.print("S");
       Serial2.print("D");
@@ -335,63 +318,12 @@ void sendData(int menuCommand) {
       Serial2.print("G");
       Serial2.print(gyroscopeString);
       Serial2.print("E");
+      Serial2.flush();
 #endif
       break;
+
+    // Date & Time from GPS
     case 3:
-#ifdef debugMode
-      Serial.print("S");
-      Serial.print("D");
-      Serial.print(dataUpdated);
-      Serial.print("L");
-      Serial.print(satellites);
-      Serial.print("H");
-      Serial.print(hdop);
-      Serial.print("T");
-      Serial.print(gpsLat, 6);
-      Serial.print("N");
-      Serial.print(gpsLon, 6);
-      Serial.print("a");
-      Serial.print(gpsAltitudeFt);
-      Serial.print("s");
-      Serial.print(gpsSpeedMPH);
-      Serial.print("c");
-      Serial.print(gpsCourse);
-      Serial.print("A");
-      Serial.print(accelerometerString);
-      Serial.print("C");
-      Serial.print(compassString);
-      Serial.print("G");
-      Serial.print(gyroscopeString);
-      Serial.print("E");
-      Serial.println();
-#else
-      Serial2.print("S");
-      Serial2.print("D");
-      Serial2.print(dataUpdated);
-      Serial2.print("L");
-      Serial2.print(satellites);
-      Serial2.print("H");
-      Serial2.print(hdop);
-      Serial2.print("T");
-      Serial2.print(gpsLat, 6);
-      Serial2.print("N");
-      Serial2.print(gpsLon, 6);
-      Serial2.print("a");
-      Serial2.print(gpsAltitudeFt);
-      Serial2.print("s");
-      Serial2.print(gpsSpeedMPH);
-      Serial2.print("c");
-      Serial2.print(gpsCourse);
-      Serial2.print("A");
-      Serial2.print(accelerometerString);
-      Serial2.print("C");
-      Serial2.print(compassString);
-      Serial2.print("G");
-      Serial2.print(gyroscopeString);
-      Serial2.print("E");
-#endif
-      break;
-    case 4:
 #ifdef debugMode
       Serial.print("S");
       Serial.print("M");
@@ -408,6 +340,7 @@ void sendData(int menuCommand) {
       Serial.print(second());
       Serial.print("E");
       Serial.println();
+      Serial.flush();
 #else
       Serial2.print("S");
       Serial2.print("M");
@@ -423,8 +356,10 @@ void sendData(int menuCommand) {
       Serial2.print("s");
       Serial2.print(second());
       Serial2.print("E");
+      Serial2.flush();
 #endif
       break;
+
     default:
       break;
   }
