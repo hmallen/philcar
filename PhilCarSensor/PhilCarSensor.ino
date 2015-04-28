@@ -87,39 +87,38 @@ void setup() {
   // Wait for GPS to acquire enough satellites and have sufficient HDOP (precision)
   readGPS();
   if (satellites < gpsSatMinimum || hdop > gpsHDOPMinimum) {
-    Serial.println();
     while (satellites < gpsSatMinimum || hdop > gpsHDOPMinimum) {
       readGPS();
-//#ifdef debugMode
+      #ifdef debugMode
       Serial.print(F("Sats: "));
       Serial.println(satellites);
       Serial.print(F("HDOP: "));
       Serial.println(hdop);
-//#endif
+      #endif
       delay(5000);
     }
   }
-//#ifdef debugMode
+  //#ifdef debugMode
   Serial.println(F("GPS satellites acquired with sufficient precision."));
   Serial.println();
   delay(1000);
-//#endif
+  //#endif
   gpsLock = true;
 
   // Set internal date and time from GPS
   readGPSDateTime = true;
   readGPS();
-//#ifdef debugMode
+  //#ifdef debugMode
   Serial.println(F("Date & Time set from GPS data."));
   Serial.println();
   delay(100);
-//#endif
+  //#endif
   readGPSDateTime = false;
 
   digitalWrite(readyOut, HIGH);
-//#ifdef debugMode
+  //#ifdef debugMode
   Serial.println(F("Setup complete."));
-//#endif
+  //#endif
 }
 
 void loop() {
