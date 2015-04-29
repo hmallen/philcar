@@ -22,7 +22,7 @@
 
 // Digital pins
 const int readyOut = 2;  // Ready signal for ArduBerry functions
-const int sirenRelay = 3;  // Relay gating power to intruder siren
+const int calibButton = 3;  // Relay gating power to intruder siren
 // Analog pins
 const int accelXPin = A15;  // Accelerometer X axis
 const int accelYPin = A14;  // Accelerometer Y axis
@@ -58,8 +58,7 @@ boolean dataUpdated = false;
 void setup() {
   pinMode(readyOut, OUTPUT);
   digitalWrite(readyOut, LOW);
-  pinMode(sirenRelay, OUTPUT);
-  digitalWrite(sirenRelay, LOW);
+  pinMode(calibButton, INPUT);
 
   Serial.begin(38400);  // Debug Serial
 
@@ -89,12 +88,12 @@ void setup() {
   if (satellites < gpsSatMinimum || hdop > gpsHDOPMinimum) {
     while (satellites < gpsSatMinimum || hdop > gpsHDOPMinimum) {
       readGPS();
-      #ifdef debugMode
+#ifdef debugMode
       Serial.print(F("Sats: "));
       Serial.println(satellites);
       Serial.print(F("HDOP: "));
       Serial.println(hdop);
-      #endif
+#endif
       delay(5000);
     }
   }
@@ -173,7 +172,20 @@ void modeMenu(int menuCommand) {
     case 0:
 #ifdef debugMode
       Serial.println(F("Waiting for calibration command..."));
+#endif
       digitalWrite(readyOut, LOW);
+#ifndef debugMode
+      if (digitalRead(calibButton) == LOW) {
+        while (digitalRead(calibButton) == LOW) {
+          delay(10);
+        }
+      }
+      if (digitalRead(calibButton) == HIGH) {
+        while (digitalRead(calibButton) == HIGH) {
+          delay(100);
+        }
+      }
+#else
       if (!Serial.available()) {
         while (!Serial.available()) {
           delay(10);
@@ -182,35 +194,14 @@ void modeMenu(int menuCommand) {
       if (Serial.available()) {
         while (Serial.available()) {
           char c = Serial.read();
-          if (c == '0') {
-            zeroSensors();
-            digitalWrite(readyOut, HIGH);
-            Serial.println(F("Calibration complete."));
-            break;
-          }
-          else Serial.println(F("Invalid calibration command."));
-          delay(10);
-        }
-      }
-#else
-      digitalWrite(readyOut, LOW);
-      if (!Serial2.available()) {
-        while (!Serial2.available()) {
-          delay(10);
-        }
-      }
-      if (Serial2.available()) {
-        while (Serial2.available()) {
-          char c = Serial2.read();
-          if (c == '0') {
-            zeroSensors();
-            digitalWrite(readyOut, HIGH);
-            break;
-          }
+          if (c == 'B') break;
           delay(10);
         }
       }
 #endif
+      zeroSensors();
+      digitalWrite(readyOut, HIGH);
+      Serial.println(F("Calibration complete."));
       break;
 
     // Read GPS
