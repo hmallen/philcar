@@ -20,10 +20,11 @@
 #define compAddr 0x1E  // Compass
 #define gyroAddr 0x69  // Gyroscope
 
-// Digital pins
-const int readyOut = 2;  // Ready signal for ArduBerry functions
-const int calibButton = 3;  // Relay gating power to intruder siren
-// Analog pins
+// Digital inputs
+const int calibButton = 2;  // Relay gating power to intruder siren
+// Digital outputs
+const int readyOut = 3;  // Ready signal for ArduBerry functions
+// Analog inputs
 const int accelXPin = A15;  // Accelerometer X axis
 const int accelYPin = A14;  // Accelerometer Y axis
 const int accelZPin = A13;  // Accelerometer Z axis
@@ -39,7 +40,7 @@ int gyroOffset, gyroXOffset, gyroYOffset, gyroZOffset;
 
 // GPS Global Variables
 const int gpsSatMinimum = 4;  // May want to change to 6 for real launch
-const int gpsHDOPMinimum = 250;  // May want to change to 200 for real launch
+const int gpsHDOPMinimum = 300;  // May want to change to 200 for real launch
 int satellites, hdop;
 float gpsLat, gpsLon, gpsAltitudeFt, gpsSpeedMPH, gpsCourse;
 
@@ -97,34 +98,34 @@ void setup() {
       delay(5000);
     }
   }
-  //#ifdef debugMode
+  #ifdef debugMode
   Serial.println(F("GPS satellites acquired with sufficient precision."));
   Serial.println();
   delay(1000);
-  //#endif
+  #endif
   gpsLock = true;
 
   // Set internal date and time from GPS
   readGPSDateTime = true;
   readGPS();
-  //#ifdef debugMode
+  #ifdef debugMode
   Serial.println(F("Date & Time set from GPS data."));
   Serial.println();
   delay(100);
-  //#endif
+  #endif
   readGPSDateTime = false;
 
   digitalWrite(readyOut, HIGH);
-  //#ifdef debugMode
+  #ifdef debugMode
   Serial.println(F("Setup complete."));
-  //#endif
+  #endif
 }
 
 void loop() {
 #ifndef debugMode
   if (!Serial2.available()) {
     while (!Serial2.available()) {
-      delay(100);
+      delay(10);
     }
   }
   String commandString = "";
@@ -132,7 +133,7 @@ void loop() {
     while (Serial2.available()) {
       char c = Serial2.read();
       commandString += c;
-      delay(100);
+      delay(10);
     }
     Serial.print(F("commandString: "));
     Serial.println(commandString);
@@ -140,7 +141,7 @@ void loop() {
 #else
   if (!Serial.available()) {
     while (!Serial.available()) {
-      delay(100);
+      delay(10);
     }
   }
   String commandString = "";
@@ -148,7 +149,7 @@ void loop() {
     while (Serial.available()) {
       char c = Serial.read();
       commandString += c;
-      delay(100);
+      delay(10);
     }
   }
 #endif
@@ -162,7 +163,7 @@ void loop() {
 #endif
   }
   dataUpdated = false;
-  delay(1000);
+  delay(100);
 }
 
 // Mode menu controlled by ArduBerry via serial connection (Serial2 tx)
