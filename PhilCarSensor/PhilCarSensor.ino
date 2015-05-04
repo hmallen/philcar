@@ -1,15 +1,15 @@
 /*
   Sensor Unit (Phil's Car - 1973 Datsun 240Z)
-
-  Components:
-  1) Shields
-    - Custom sensor protoshield
-      - Accelerometer
-      - Compass
-      - Gyroscope
-  2) Components
-    - 12V Siren
-*/
+ 
+ Components:
+ 1) Shields
+ - Custom sensor protoshield
+ - Accelerometer
+ - Compass
+ - Gyroscope
+ 2) Components
+ - 12V Siren
+ */
 
 //#define debugMode
 
@@ -45,7 +45,7 @@ int satellites, hdop;
 float gpsLat, gpsLon, gpsAltitudeFt, gpsSpeedMPH, gpsCourse;
 
 // Strings
-String accelerometerString, compassString, gyroscopeString, gpsString;
+String accelerometerString, compassString, gyroscopeString;
 
 // Library Definitions
 TinyGPS gps;  // GPS
@@ -61,7 +61,7 @@ void setup() {
   digitalWrite(readyOut, LOW);
   pinMode(calibButton, INPUT);
 
-  Serial.begin(38400);  // Debug Serial
+  Serial.begin(9600);  // Debug Serial
 
   Serial1.begin(4800);  // GPS Serial
   if (!Serial1.available()) {  // Wait for GPS data stream to begin before proceeding
@@ -70,11 +70,11 @@ void setup() {
     }
   }
 
-  Serial2.begin(38400);  // Data connection to ArduBerry
+  Serial2.begin(9600);  // Data connection to ArduBerry
 
   Wire.begin();  // Initiate I2C connection
 
-  // Setup I2C sensors
+    // Setup I2C sensors
   i2cWriteByte(compAddr, 0x0, 0x10);  // Compass - Default value
   i2cWriteByte(compAddr, 0x1, 0x20);  // Compass - Default value
   i2cWriteByte(compAddr, 0x2, 0x0);  // Compass - \Continuous measurement mode
@@ -98,27 +98,28 @@ void setup() {
       delay(5000);
     }
   }
-  #ifdef debugMode
+#ifdef debugMode
   Serial.println(F("GPS satellites acquired with sufficient precision."));
   Serial.println();
   delay(1000);
-  #endif
+#endif
   gpsLock = true;
 
   // Set internal date and time from GPS
   readGPSDateTime = true;
   readGPS();
-  #ifdef debugMode
+#ifdef debugMode
   Serial.println(F("Date & Time set from GPS data."));
   Serial.println();
   delay(100);
-  #endif
+#endif
   readGPSDateTime = false;
 
   digitalWrite(readyOut, HIGH);
-  #ifdef debugMode
+#ifdef debugMode
   Serial.println(F("Setup complete."));
-  #endif
+  Serial.println();
+#endif
 }
 
 void loop() {
@@ -170,189 +171,189 @@ void loop() {
 void modeMenu(int menuCommand) {
   switch (menuCommand) {
     // Sensor calibration (zeroing)
-    case 0:
+  case 0:
 #ifdef debugMode
-      Serial.println(F("Waiting for calibration command..."));
+    Serial.println(F("Waiting for calibration command..."));
 #endif
-      digitalWrite(readyOut, LOW);
+    digitalWrite(readyOut, LOW);
 #ifndef debugMode
-      if (digitalRead(calibButton) == LOW) {
-        while (digitalRead(calibButton) == LOW) {
-          delay(10);
-        }
+    if (digitalRead(calibButton) == LOW) {
+      while (digitalRead(calibButton) == LOW) {
+        delay(10);
       }
-      if (digitalRead(calibButton) == HIGH) {
-        while (digitalRead(calibButton) == HIGH) {
-          delay(100);
-        }
+    }
+    if (digitalRead(calibButton) == HIGH) {
+      while (digitalRead(calibButton) == HIGH) {
+        delay(100);
       }
+    }
 #else
-      if (!Serial.available()) {
-        while (!Serial.available()) {
-          delay(10);
-        }
+    if (!Serial.available()) {
+      while (!Serial.available()) {
+        delay(10);
       }
-      if (Serial.available()) {
-        while (Serial.available()) {
-          char c = Serial.read();
-          if (c == 'B') break;
-          delay(10);
-        }
+    }
+    if (Serial.available()) {
+      while (Serial.available()) {
+        char c = Serial.read();
+        if (c == 'B') break;
+        delay(10);
       }
+    }
 #endif
-      zeroSensors();
-      digitalWrite(readyOut, HIGH);
-      Serial.println(F("Calibration complete."));
-      break;
+    zeroSensors();
+    digitalWrite(readyOut, HIGH);
+    Serial.println(F("Calibration complete."));
+    break;
 
     // Read GPS
-    case 1:
-      readGPS();
-      if (gpsLat != 0 && gpsLon != 0) dataUpdated = true;
-      sendData(1);
-      break;
+  case 1:
+    readGPS();
+    if (gpsLat != 0 && gpsLon != 0) dataUpdated = true;
+    sendData(1);
+    break;
 
     // Read sensors
-    case 2:
-      readAccelerometer();
-      readCompass();
-      readGyroscope();
-      if (gpsLat != 0 && gpsLon != 0) dataUpdated = true;
-      sendData(2);
-      break;
+  case 2:
+    readAccelerometer();
+    readCompass();
+    readGyroscope();
+    if (gpsLat != 0 && gpsLon != 0) dataUpdated = true;
+    sendData(2);
+    break;
 
     // Read GPS for date & time only
-    case 3:
-      readGPS();
-      sendData(3);
-      break;
+  case 3:
+    readGPS();
+    sendData(3);
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
 }
 
 void sendData(int menuCommand) {
   switch (menuCommand) {
-    case 0:
-      break;
+  case 0:
+    break;
 
     // GPS
-    case 1:
+  case 1:
 #ifdef debugMode
-      Serial.print("S");
-      Serial.print("C");
-      Serial.print(gpsLat, 6);
-      Serial.print(",");
-      Serial.print(gpsLon, 6);
-      Serial.print("D");
-      Serial.print(dataUpdated);
-      Serial.print(",");
-      Serial.print(satellites);
-      Serial.print(",");
-      Serial.print(hdop);
-      Serial.print(",");
-      Serial.print(gpsAltitudeFt);
-      Serial.print(",");
-      Serial.print(gpsSpeedMPH);
-      Serial.print(",");
-      Serial.print(gpsCourse);
-      Serial.print("E");
-      Serial.println();
-      Serial.flush();
+    Serial.print("S");
+    Serial.print("C");
+    Serial.print(gpsLat, 6);
+    Serial.print(",");
+    Serial.print(gpsLon, 6);
+    Serial.print("D");
+    Serial.print(dataUpdated);
+    Serial.print(",");
+    Serial.print(satellites);
+    Serial.print(",");
+    Serial.print(hdop);
+    Serial.print(",");
+    Serial.print(gpsAltitudeFt);
+    Serial.print(",");
+    Serial.print(gpsSpeedMPH);
+    Serial.print(",");
+    Serial.print(gpsCourse);
+    Serial.print("E");
+    Serial.println();
+    Serial.flush();
 #else
-      Serial2.print("S");
-      Serial2.print("C");
-      Serial2.print(gpsLat, 6);
-      Serial2.print(",");
-      Serial2.print(gpsLon, 6);
-      Serial2.print("D");
-      Serial2.print(dataUpdated);
-      Serial2.print(",");
-      Serial2.print(satellites);
-      Serial2.print(",");
-      Serial2.print(hdop);
-      Serial2.print(",");
-      Serial2.print(gpsAltitudeFt);
-      Serial2.print(",");
-      Serial2.print(gpsSpeedMPH);
-      Serial2.print(",");
-      Serial2.print(gpsCourse);
-      Serial2.print("E");
-      Serial2.flush();
+    Serial2.print("S");
+    Serial2.print("C");
+    Serial2.print(gpsLat, 6);
+    Serial2.print(",");
+    Serial2.print(gpsLon, 6);
+    Serial2.print("D");
+    Serial2.print(dataUpdated);
+    Serial2.print(",");
+    Serial2.print(satellites);
+    Serial2.print(",");
+    Serial2.print(hdop);
+    Serial2.print(",");
+    Serial2.print(gpsAltitudeFt);
+    Serial2.print(",");
+    Serial2.print(gpsSpeedMPH);
+    Serial2.print(",");
+    Serial2.print(gpsCourse);
+    Serial2.print("E");
+    Serial2.flush();
 #endif
-      break;
+    break;
 
     // Sensors
-    case 2:
+  case 2:
 #ifdef debugMode
-      Serial.print("S");
-      Serial.print("D");
-      Serial.print(dataUpdated);
-      Serial.print("A");
-      Serial.print(accelerometerString);
-      Serial.print("C");
-      Serial.print(compassString);
-      Serial.print("G");
-      Serial.print(gyroscopeString);
-      Serial.print("E");
-      Serial.println();
-      Serial.flush();
+    Serial.print("S");
+    Serial.print("D");
+    Serial.print(dataUpdated);
+    Serial.print("A");
+    Serial.print(accelerometerString);
+    Serial.print("C");
+    Serial.print(compassString);
+    Serial.print("G");
+    Serial.print(gyroscopeString);
+    Serial.print("E");
+    Serial.println();
+    Serial.flush();
 #else
-      Serial2.print("S");
-      Serial2.print("D");
-      Serial2.print(dataUpdated);
-      Serial2.print("A");
-      Serial2.print(accelerometerString);
-      Serial2.print("C");
-      Serial2.print(compassString);
-      Serial2.print("G");
-      Serial2.print(gyroscopeString);
-      Serial2.print("E");
-      Serial2.flush();
+    Serial2.print("S");
+    Serial2.print("D");
+    Serial2.print(dataUpdated);
+    Serial2.print("A");
+    Serial2.print(accelerometerString);
+    Serial2.print("C");
+    Serial2.print(compassString);
+    Serial2.print("G");
+    Serial2.print(gyroscopeString);
+    Serial2.print("E");
+    Serial2.flush();
 #endif
-      break;
+    break;
 
     // Date & Time from GPS
-    case 3:
+  case 3:
 #ifdef debugMode
-      Serial.print("S");
-      Serial.print("M");
-      Serial.print(month());
-      Serial.print("D");
-      Serial.print(day());
-      Serial.print("Y");
-      Serial.print(year());
-      Serial.print("h");
-      Serial.print(hour());
-      Serial.print("m");
-      Serial.print(minute());
-      Serial.print("s");
-      Serial.print(second());
-      Serial.print("E");
-      Serial.println();
-      Serial.flush();
+    Serial.print("S");
+    Serial.print("M");
+    Serial.print(month());
+    Serial.print("D");
+    Serial.print(day());
+    Serial.print("Y");
+    Serial.print(year());
+    Serial.print("h");
+    Serial.print(hour());
+    Serial.print("m");
+    Serial.print(minute());
+    Serial.print("s");
+    Serial.print(second());
+    Serial.print("E");
+    Serial.println();
+    Serial.flush();
 #else
-      Serial2.print("S");
-      Serial2.print("M");
-      Serial2.print(month());
-      Serial2.print("D");
-      Serial2.print(day());
-      Serial2.print("Y");
-      Serial2.print(year());
-      Serial2.print("h");
-      Serial2.print(hour());
-      Serial2.print("m");
-      Serial2.print(minute());
-      Serial2.print("s");
-      Serial2.print(second());
-      Serial2.print("E");
-      Serial2.flush();
+    Serial2.print("S");
+    Serial2.print("M");
+    Serial2.print(month());
+    Serial2.print("D");
+    Serial2.print(day());
+    Serial2.print("Y");
+    Serial2.print(year());
+    Serial2.print("h");
+    Serial2.print(hour());
+    Serial2.print("m");
+    Serial2.print(minute());
+    Serial2.print("s");
+    Serial2.print(second());
+    Serial2.print("E");
+    Serial2.flush();
 #endif
-      break;
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
 }
 
@@ -382,11 +383,11 @@ void readCompass() {
   uint8_t z_lsb; // Z-axis least significant byte
   // Get the value from the sensor
   if ((i2cReadByte(compAddr, 0x3, &x_msb) == 0) &&
-      (i2cReadByte(compAddr, 0x4, &x_lsb) == 0) &&
-      (i2cReadByte(compAddr, 0x5, &y_msb) == 0) &&
-      (i2cReadByte(compAddr, 0x6, &y_lsb) == 0) &&
-      (i2cReadByte(compAddr, 0x7, &z_msb) == 0) &&
-      (i2cReadByte(compAddr, 0x8, &z_lsb) == 0)) {
+    (i2cReadByte(compAddr, 0x4, &x_lsb) == 0) &&
+    (i2cReadByte(compAddr, 0x5, &y_msb) == 0) &&
+    (i2cReadByte(compAddr, 0x6, &y_lsb) == 0) &&
+    (i2cReadByte(compAddr, 0x7, &z_msb) == 0) &&
+    (i2cReadByte(compAddr, 0x8, &z_lsb) == 0)) {
     uint8_t compX = x_msb << 8 | x_lsb;
     uint8_t compY = y_msb << 8 | y_lsb;
     uint8_t compZ = z_msb << 8 | z_lsb;
@@ -406,11 +407,11 @@ void readGyroscope() {
   uint8_t z_lsb; // Z-axis least significant byte
 
   if ((i2cReadByte(gyroAddr, 0x29, &x_msb) == 0) &&
-      (i2cReadByte(gyroAddr, 0x28, &x_lsb) == 0) &&
-      (i2cReadByte(gyroAddr, 0x2B, &y_msb) == 0) &&
-      (i2cReadByte(gyroAddr, 0x2A, &y_lsb) == 0) &&
-      (i2cReadByte(gyroAddr, 0x2D, &z_msb) == 0) &&
-      (i2cReadByte(gyroAddr, 0x2C, &z_lsb) == 0)) {
+    (i2cReadByte(gyroAddr, 0x28, &x_lsb) == 0) &&
+    (i2cReadByte(gyroAddr, 0x2B, &y_msb) == 0) &&
+    (i2cReadByte(gyroAddr, 0x2A, &y_lsb) == 0) &&
+    (i2cReadByte(gyroAddr, 0x2D, &z_msb) == 0) &&
+    (i2cReadByte(gyroAddr, 0x2C, &z_lsb) == 0)) {
     uint16_t x = x_msb << 8 | x_lsb;
     uint16_t y = y_msb << 8 | y_lsb;
     uint16_t z = z_msb << 8 | z_lsb;
@@ -486,8 +487,6 @@ void gpsdump(TinyGPS & gps) {
       gpsAltitudeFt = altitude / 3.048;
       gpsCourse = gps.f_course();
       gpsSpeedMPH = gps.f_speed_mph();
-
-      gpsString = String(satellites) + "," + String(hdop) + "," + String(gpsAltitudeFt) + "," + String(gpsCourse) + "," + String(gpsSpeedMPH);
     }
   }
 }
@@ -541,3 +540,4 @@ void zeroSensors() {
 
   sensorZeroMode = false;
 }
+

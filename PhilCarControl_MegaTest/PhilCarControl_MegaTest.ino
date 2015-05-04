@@ -1,18 +1,18 @@
 /*
   Control Unit (Phil's Car - 1973 Datsun 240Z)
-
-  Rerouted pins for Mega usage:
-  SD Card (SPI):
-  10 --> 53 (SS)
-  11 --> 51 (MOSI)
-  12 --> 50 (MISO)
-  13 --> 52 (SCK)
-  RTC (I2C):
-  A4 --> 20 (SDA)
-  A5 --> 21 (SCL)
-
-  TO DO:
-   - CHECK FOR FULL SMS STORAGE AND CLEAR IF NECESSARY
+ 
+ Rerouted pins for Mega usage:
+ SD Card (SPI):
+ 10 --> 53 (SS)
+ 11 --> 51 (MOSI)
+ 12 --> 50 (MISO)
+ 13 --> 52 (SCK)
+ RTC (I2C):
+ A4 --> 20 (SDA)
+ A5 --> 21 (SCL)
+ 
+ TO DO:
+ - CHECK FOR FULL SMS STORAGE AND CLEAR IF NECESSARY
  */
 
 #define debugMode
@@ -85,8 +85,8 @@ void setup() {
   pinMode(sensorReadyIn, INPUT);
   pinMode(rpiReadyIn, INPUT);
 
-  Serial.begin(38400);  // Serial connection for Raspberry Pi OR debugging on Arduino Uno
-  Serial1.begin(38400);  // Serial connection for sensor unit communication
+  Serial.begin(9600);  // Serial connection for Raspberry Pi OR debugging on Arduino Uno
+  Serial1.begin(9600);  // Serial connection for sensor unit communication
 
 #ifdef debugMode
   Serial.println(F("Beginning setup."));
@@ -123,7 +123,7 @@ void setup() {
 #ifdef debugMode
       Serial.write(Serial1.read());
 #endif
-      delay(10);
+      delay(100);
     }
   }
   if (digitalRead(sensorReadyIn) == HIGH) {
@@ -160,10 +160,10 @@ void loop() {
   unsigned long smsDelayStart = millis();
   //Serial.println(F("Ready for command..."));
   while ((millis() - gpsLastUpdate) < normalUpdateInterval) {
-    if ((millis() - smsDelayStart) > smsCheckDelay) {
-      checkSMS();
-      smsDelayStart = millis();
-    }
+    /*if ((millis() - smsDelayStart) > smsCheckDelay) {
+     checkSMS();
+     smsDelayStart = millis();
+     }*/
     // If command is received from RaspberryPi
     if (Serial.available()) {
       String rpiCommandString = "";
@@ -191,8 +191,28 @@ void loop() {
 void sendRequest(int menuCommand) {
   switch (menuCommand) {
     // Calibration commands
-    case 0:
-      Serial1.print("0");  // Receiving-end stores as String
+  case 0:
+    Serial1.print("0");  // Receiving-end stores as String
+    if (!Serial1.available()) {
+      while (!Serial1.available()) {
+        delay(10);
+      }
+    }
+    dataString = "";
+    if (Serial1.available()) {
+      while (Serial1.available()) {
+        char c = Serial1.read();
+        dataString += c;
+        delay(10);
+      }
+    }
+    if (dataString == "0") {
+      if (digitalRead(sensorReadyIn) == HIGH) {
+        while (digitalRead(sensorReadyIn) == HIGH) {
+          delay(10);
+        }
+      }
+      Serial1.print("0");  // Receiving-end waiting for character
       if (!Serial1.available()) {
         while (!Serial1.available()) {
           delay(10);
@@ -206,97 +226,77 @@ void sendRequest(int menuCommand) {
           delay(10);
         }
       }
-      if (dataString == "0") {
-        if (digitalRead(sensorReadyIn) == HIGH) {
-          while (digitalRead(sensorReadyIn) == HIGH) {
-            delay(10);
-          }
-        }
-        Serial1.print("0");  // Receiving-end waiting for character
-        if (!Serial1.available()) {
-          while (!Serial1.available()) {
-            delay(10);
-          }
-        }
-        dataString = "";
-        if (Serial1.available()) {
-          while (Serial1.available()) {
-            char c = Serial1.read();
-            dataString += c;
-            delay(10);
-          }
-        }
 #ifdef debugMode
-        if (dataString == "0") Serial.println(F("Calibration succesful."));
-        else Serial.println(F("Calibration failed."));
+      if (dataString == "0") Serial.println(F("Calibration succesful."));
+      else Serial.println(F("Calibration failed."));
 #endif
-      }
+    }
 #ifdef debugMode
-      else Serial.println(F("Improper calibration ready response received."));
+    else Serial.println(F("Improper calibration ready response received."));
 #endif
-      break;
+    break;
 
     // GPS
-    case 1:
-      Serial1.print("1");  // GPS
-      if (!Serial1.available()) {
-        while (!Serial1.available()) {
-          delay(10);
-        }
+  case 1:
+    Serial1.print("1");  // GPS
+    if (!Serial1.available()) {
+      while (!Serial1.available()) {
+        delay(10);
       }
-      dataString = "";
-      if (Serial1.available()) {
-        while (Serial1.available()) {
-          char c = Serial1.read();
-          dataString += c;
-          delay(10);
-        }
-        parseData(dataString, 1);  // GPS
-        gpsLastUpdate = millis();
+    }
+    dataString = "";
+    if (Serial1.available()) {
+      while (Serial1.available()) {
+        char c = Serial1.read();
+        dataString += c;
+        delay(10);
       }
-      break;
+      parseData(dataString, 1);  // GPS
+      gpsLastUpdate = millis();
+    }
+    break;
 
     // Sensors
-    case 2:
-      Serial1.print("2");  // Sensors
-      if (!Serial1.available()) {
-        while (!Serial1.available()) {
-          delay(10);
-        }
+  case 2:
+    Serial1.print("2");  // Sensors
+    if (!Serial1.available()) {
+      while (!Serial1.available()) {
+        delay(10);
       }
-      dataString = "";
-      if (Serial1.available()) {
-        while (Serial1.available()) {
-          char c = Serial1.read();
-          dataString += c;
-          delay(10);
-        }
-        parseData(dataString, 2);  // Sensors
-        sensorLastUpdate = millis();
+    }
+    dataString = "";
+    if (Serial1.available()) {
+      while (Serial1.available()) {
+        char c = Serial1.read();
+        dataString += c;
+        delay(10);
       }
-      break;
+      parseData(dataString, 2);  // Sensors
+      sensorLastUpdate = millis();
+    }
+    break;
 
     // Date & Time
-    case 3:
-      Serial1.print("3");
-      if (!Serial1.available()) {
-        while (!Serial1.available()) {
-          delay(10);
-        }
+  case 3:
+    Serial1.print("3");
+    if (!Serial1.available()) {
+      while (!Serial1.available()) {
+        delay(10);
       }
-      dataString = "";
-      if (Serial1.available()) {
-        while (Serial1.available()) {
-          char c = Serial1.read();
-          dataString += c;
-          delay(10);
-        }
-        parseData(dataString, 3);  // Date & Time
+    }
+    dataString = "";
+    if (Serial1.available()) {
+      while (Serial1.available()) {
+        char c = Serial1.read();
+        dataString += c;
+        delay(10);
       }
-      break;
+      parseData(dataString, 3);  // Date & Time
+    }
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
 }
 
@@ -304,231 +304,231 @@ void sendRequest(int menuCommand) {
 void rpiMenu(int menuCommand, boolean tripMode) {
   int lightLevel;
   switch (menuCommand) {
-    case 0:
-      break;
+  case 0:
+    break;
 
     // GPS data sent to RPi
-    case 1:
-      if ((millis() - gpsLastUpdate) > gpsUpdateFrequency || firstLoop == true || tripMode == true) sendRequest(1);
-      Serial.println(gpsCoordString);
-      Serial.println(gpsDataString);
-      Serial.flush();
-      break;
+  case 1:
+    if ((millis() - gpsLastUpdate) > gpsUpdateFrequency || firstLoop == true || tripMode == true) sendRequest(1);
+    Serial.println(gpsCoordString);
+    Serial.println(gpsDataString);
+    Serial.flush();
+    break;
 
     // Sensor data sent to RPi
-    case 2:
-      if ((millis() - sensorLastUpdate) > sensorUpdateFrequency || tripMode == true) sendRequest(2);
-      Serial.println(accelerometerString);
-      Serial.println(compassString);
-      Serial.println(gyroscopeString);
-      Serial.flush();
-      break;
+  case 2:
+    if ((millis() - sensorLastUpdate) > sensorUpdateFrequency || tripMode == true) sendRequest(2);
+    Serial.println(accelerometerString);
+    Serial.println(compassString);
+    Serial.println(gyroscopeString);
+    Serial.flush();
+    break;
 
     // Date & time sent to RPi
-    case 3:
-      assembleDateTime();
-      Serial.println(dateString);
-      Serial.println(timeString);
-      Serial.flush();
-      break;
+  case 3:
+    assembleDateTime();
+    Serial.println(dateString);
+    Serial.println(timeString);
+    Serial.flush();
+    break;
 
     // Check light level and turn on IR LEDs if necessary
-    case 4:
-      lightLevel = map(analogRead(lightPin), 0, 1023, 0, 100);
-      if (lightLevel <= 40) {
-        digitalWrite(ledRelay, HIGH);
-        delay(irLEDDelay);
-        digitalWrite(ledRelay, LOW);
-      }
-      break;
+  case 4:
+    lightLevel = map(analogRead(lightPin), 0, 1023, 0, 100);
+    if (lightLevel <= 40) {
+      digitalWrite(ledRelay, HIGH);
+      delay(irLEDDelay);
+      digitalWrite(ledRelay, LOW);
+    }
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
 }
 
 // Menu of responses to sensor unit requests
 /*void sensorMenu(int menuCommand) {
-switch (menuCommand) {
-case 0:
-break;
-case 1:
-break;
-case 2:
-break;
-case 3:
-break;
-case 4:
-break;
-default:
-break;
-}
-}*/
+ switch (menuCommand) {
+ case 0:
+ break;
+ case 1:
+ break;
+ case 2:
+ break;
+ case 3:
+ break;
+ case 4:
+ break;
+ default:
+ break;
+ }
+ }*/
 
 // Parse data received from sensor unit
 void parseData(String rawData, int dataType) {
   int charMarker;
   String monthString, dayString, yearString, hourString, minuteString, secondString;
   switch (dataType) {
-    case 0:
-      break;
+  case 0:
+    break;
 
     // GPS
-    case 1:
-      for (int i = 0; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'S') {
-          charMarker = i + 1;
-          break;
-        }
+  case 1:
+    for (int i = 0; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'S') {
+        charMarker = i + 1;
+        break;
       }
-      // GPS Coordinates
-      gpsCoordString = "";
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'D') {
-          charMarker = i + 1;
-          break;
-        }
-        if (c != 'C') gpsCoordString += c;
+    }
+    // GPS Coordinates
+    gpsCoordString = "";
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'D') {
+        charMarker = i + 1;
+        break;
       }
-      gpsDataString = "";
-      // All other GPS data
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'E') {
-          charMarker = i + 1;
-          break;
-        }
-        gpsDataString += c;
+      if (c != 'C') gpsCoordString += c;
+    }
+    gpsDataString = "";
+    // All other GPS data
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'E') {
+        charMarker = i + 1;
+        break;
       }
-      break;
+      gpsDataString += c;
+    }
+    break;
 
     // Sensors
-    case 2:
-      for (int i = 0; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'S') {
-          charMarker = i + 1;
-          break;
-        }
+  case 2:
+    for (int i = 0; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'S') {
+        charMarker = i + 1;
+        break;
       }
-      // Data update status
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'A') {
-          charMarker = i + 1;
-          break;
-        }
-        if (c != 'D') dataUpdated += c;
+    }
+    // Data update status
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'A') {
+        charMarker = i + 1;
+        break;
       }
-      // Accelerometer string
-      accelerometerString = "";
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'C') {
-          charMarker = i + 1;
-          break;
-        }
-        accelerometerString += c;
+      if (c != 'D') dataUpdated += c;
+    }
+    // Accelerometer string
+    accelerometerString = "";
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'C') {
+        charMarker = i + 1;
+        break;
       }
-      // Compass string
-      compassString = "";
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'G') {
-          charMarker = i + 1;
-          break;
-        }
-        compassString += c;
+      accelerometerString += c;
+    }
+    // Compass string
+    compassString = "";
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'G') {
+        charMarker = i + 1;
+        break;
       }
-      // Gyroscope string
-      gyroscopeString = "";
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'E') break;
-        gyroscopeString += c;
-      }
-      break;
+      compassString += c;
+    }
+    // Gyroscope string
+    gyroscopeString = "";
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'E') break;
+      gyroscopeString += c;
+    }
+    break;
 
     // Date & Time
-    case 3:
-      for (int i = 0; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'S') {
-          charMarker = i + 1;
-          break;
-        }
+  case 3:
+    for (int i = 0; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'S') {
+        charMarker = i + 1;
+        break;
       }
-      // Month
-      monthString = "";
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'D') {
-          charMarker = i + 1;
-          break;
-        }
-        if (c != 'M') monthString += c;
+    }
+    // Month
+    monthString = "";
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'D') {
+        charMarker = i + 1;
+        break;
       }
-      // Day
-      dayString = "";
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'Y') {
-          charMarker = i + 1;
-          break;
-        }
-        dayString += c;
+      if (c != 'M') monthString += c;
+    }
+    // Day
+    dayString = "";
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'Y') {
+        charMarker = i + 1;
+        break;
       }
-      // Year
-      yearString = "";
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'h') {
-          charMarker = i + 1;
-          break;
-        }
-        yearString += c;
+      dayString += c;
+    }
+    // Year
+    yearString = "";
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'h') {
+        charMarker = i + 1;
+        break;
       }
-      // Hour
-      hourString = "";
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'm') {
-          charMarker = i + 1;
-          break;
-        }
-        hourString += c;
+      yearString += c;
+    }
+    // Hour
+    hourString = "";
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'm') {
+        charMarker = i + 1;
+        break;
       }
-      // Minute
-      minuteString = "";
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 's') {
-          charMarker = i + 1;
-          break;
-        }
-        minuteString += c;
+      hourString += c;
+    }
+    // Minute
+    minuteString = "";
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 's') {
+        charMarker = i + 1;
+        break;
       }
-      // Second
-      secondString = "";
-      for (int i = charMarker; ; i++) {
-        char c = rawData.charAt(i);
-        if (c == 'E') break;
-        secondString += c;
-      }
-      if (rtcSyncRequired == true) {
-        rtc.adjust(DateTime(yearString.toInt(), monthString.toInt(), dayString.toInt(), hourString.toInt(), minuteString.toInt(), secondString.toInt()));
-        now = rtc.now();
-        rtcSyncRequired = false;
+      minuteString += c;
+    }
+    // Second
+    secondString = "";
+    for (int i = charMarker; ; i++) {
+      char c = rawData.charAt(i);
+      if (c == 'E') break;
+      secondString += c;
+    }
+    if (rtcSyncRequired == true) {
+      rtc.adjust(DateTime(yearString.toInt(), monthString.toInt(), dayString.toInt(), hourString.toInt(), minuteString.toInt(), secondString.toInt()));
+      now = rtc.now();
+      rtcSyncRequired = false;
 #ifdef debugMode
-        Serial.println(F("RTC set from GPS date & time information."));
+      Serial.println(F("RTC set from GPS date & time information."));
 #endif
-      }
-      break;
+    }
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
 }
 
@@ -562,34 +562,34 @@ void writeSDLog(int writeMode) {
   else {
     switch (writeMode) {
       // Calibration
-      case 0:
-        sdZeroString = dateString + ", " + timeString;
-        logFile.println(F("DATE & TIME READ"));
-        logFile.println(sdZeroString);
-        logFile.flush();
-        logFile.close();
-        break;
+    case 0:
+      sdZeroString = dateString + ", " + timeString;
+      logFile.println(F("DATE & TIME READ"));
+      logFile.println(sdZeroString);
+      logFile.flush();
+      logFile.close();
+      break;
 
       // GPS data read
-      case 1:
-        sdOneString = dataUpdated + ", " + dateString + ", " + timeString + ", " + gpsCoordString + ", " + gpsDataString;
-        logFile.println(F("GPS DATA READ"));
-        logFile.println(sdOneString);
-        logFile.flush();
-        logFile.close();
-        break;
+    case 1:
+      sdOneString = dataUpdated + ", " + dateString + ", " + timeString + ", " + gpsCoordString + ", " + gpsDataString;
+      logFile.println(F("GPS DATA READ"));
+      logFile.println(sdOneString);
+      logFile.flush();
+      logFile.close();
+      break;
 
       // Sensor data read
-      case 2:
-        sdTwoString = dataUpdated + ", " + dateString + ", " + timeString + ", " + accelerometerString + ", " + compassString + ", " + gyroscopeString;
-        logFile.println(F("SENSOR DATA READ"));
-        logFile.println(sdTwoString);
-        logFile.flush();
-        logFile.close();
-        break;
+    case 2:
+      sdTwoString = dataUpdated + ", " + dateString + ", " + timeString + ", " + accelerometerString + ", " + compassString + ", " + gyroscopeString;
+      logFile.println(F("SENSOR DATA READ"));
+      logFile.println(sdTwoString);
+      logFile.flush();
+      logFile.close();
+      break;
 
-      default:
-        break;
+    default:
+      break;
     }
   }
   Serial.println(F("done."));
@@ -689,11 +689,17 @@ void parseSMS(String smsRaw) {
     smsMessage += c;
   }
   if (smsNumber == smsTargetNum0 ||
-      smsNumber == smsTargetNum1 ||
-      smsNumber == smsTargetNum2 ||
-      smsNumber == smsTargetNum3 ||
-      smsNumber == smsTargetNum4 ||
-      smsNumber == smsTargetNum5) smsMenu();
+    smsNumber == smsTargetNum1 ||
+    smsNumber == smsTargetNum2 ||
+    smsNumber == smsTargetNum3 ||
+    smsNumber == smsTargetNum4 ||
+    smsNumber == smsTargetNum5) {
+#ifndef debugMode
+    smsMenu();
+#else
+    Serial.println(F("SMS command issued."));
+#endif
+  }
   else {
 #ifdef debugMode
     Serial.println(F("SMS number not recognized."));
@@ -711,61 +717,62 @@ void smsMenu() {
   else {
     int smsCommand = int(smsMessage.charAt(smsCommandPos)) - 48;
     switch (smsCommand) {
-      case 0:
-        Serial.println(F("0"));
-        Serial.print(F("smsNumber:  "));
-        Serial.println(smsNumber);
-        Serial.print(F("smsMessage: "));
-        Serial.println(smsMessage);
-        /*
+    case 0:
+      Serial.println(F("0"));
+      Serial.print(F("smsNumber:  "));
+      Serial.println(smsNumber);
+      Serial.print(F("smsMessage: "));
+      Serial.println(smsMessage);
+      /*
           Serial2.println(F("AT+CMGF=1"));
-        delay(100);
-        Serial2.print(F("\""));
-        delay(100);
-        Serial2.print(smsNumber);
-        delay(100);
-        Serial2.println(F("\""));
-        delay(100);
-        Serial2.print(F("http://maps.google.com/maps?q="));
-        delay(100);
-        Serial2.print(F("Datsun@"));
-        delay(100);
-        Serial2.print(gpsCoordString);
-        delay(100);
-        Serial2.print(F("&t=h&z=19&output=html /"));
-        delay(100);
-        Serial2.println((char)26);
-        delay(100);
-        Serial2.flush();
-
-        if (!Serial2.available()) {
-        while (!Serial2.available()) {
-        delay(10);
-        }
-        }
-        smsFlush();
-        if (!Serial2.available()) {
-        while (!Serial2.available()) {
-        delay(10);
-        }
-        }
-        smsFlush();*/
-        break;
-      case 1:
-        Serial.println(F("1"));
-        // LIVE CODE
-        break;
-      case 2:
-        Serial.println(F("2"));
-        // LIVE CODE
-        break;
-      default:
-        break;
+       delay(100);
+       Serial2.print(F("\""));
+       delay(100);
+       Serial2.print(smsNumber);
+       delay(100);
+       Serial2.println(F("\""));
+       delay(100);
+       Serial2.print(F("http://maps.google.com/maps?q="));
+       delay(100);
+       Serial2.print(F("Datsun@"));
+       delay(100);
+       Serial2.print(gpsCoordString);
+       delay(100);
+       Serial2.print(F("&t=h&z=19&output=html /"));
+       delay(100);
+       Serial2.println((char)26);
+       delay(100);
+       Serial2.flush();
+       
+       if (!Serial2.available()) {
+       while (!Serial2.available()) {
+       delay(10);
+       }
+       }
+       smsFlush();
+       if (!Serial2.available()) {
+       while (!Serial2.available()) {
+       delay(10);
+       }
+       }
+       smsFlush();*/
+      break;
+    case 1:
+      Serial.println(F("1"));
+      // LIVE CODE
+      break;
+    case 2:
+      Serial.println(F("2"));
+      // LIVE CODE
+      break;
+    default:
+      break;
     }
   }
 }
 
 void smsStartup() {
+  Serial.println("1");
   // Software power-on of gprs shield
   digitalWrite(smsPowerPin, LOW);
   delay(100);
@@ -775,7 +782,7 @@ void smsStartup() {
   delay(100);
 
   delay(5000);
-
+  Serial.println("2");
   const int smsStartupDelay = 8000;
   int smsDelayStart = millis();
   boolean firstLoop = true;
@@ -796,6 +803,7 @@ void smsStartup() {
       smsDelayStart = millis();
     }
   }
+  Serial.println("3");
   // Configure GPRS output for proper parsing
   Serial2.println(F("ATE0"));
   delay(1000);
@@ -807,16 +815,20 @@ void smsStartup() {
   delay(1000);
   //Serial2.println(F("AT+CMGD=0,2"));  // Delete all saved texts
   //delay(1000);
+  Serial.println("4a");
   Serial2.flush();
   smsFlush();
+  Serial.println("4b");
 }
 
 void smsFlush() {
   if (Serial2.available()) {
+    Serial.println("5");
     while (Serial2.available()) {
       //char c = Serial2.read();
-      Serial2.write(Serial2.read());
+      Serial.write(Serial2.read());
       delay(100);
     }
+    Serial.println("6");
   }
 }
