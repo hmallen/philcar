@@ -114,6 +114,8 @@ void setup() {
   delay(100);
 #endif
   readGPSDateTime = false;
+  
+  zeroSensors();  // Zero sensors before sending real data
 
   digitalWrite(readyOut, HIGH);
 #ifdef debugMode
