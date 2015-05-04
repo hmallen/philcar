@@ -31,23 +31,19 @@ GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
 
 
 def mainLoop():
-    """
-    try:
-        # Main functions
-    except KeyboardInterrupt:
-        print "Keyboard interrupt detected. Resetting RPi GPIO."
-        GPIO.cleanup()
-    """
-        
     while True:
-        if GPIO.input(12) == 0:
-            syncDelay()
-        for x in range(1, 4):
-            sensorData = getSensorData(x)
-            print "Sensor data: " + str(sensorData) + " (" + str(x) + ")"
-            time.sleep(3)
-        print "Data acquisition complete. Sleeping for 5 seconds."
-        time.sleep(5)
+        try:
+            if GPIO.input(12) == 0:
+                syncDelay()
+            for x in range(1, 4):
+                sensorData = getSensorData(x)
+                print "Sensor data: " + str(sensorData) + " (" + str(x) + ")"
+                time.sleep(3)
+            print "Data acquisition complete. Sleeping for 5 seconds."
+            time.sleep(5)
+        except KeyboardInterrupt:
+            print "Keyboard interrupt detected. Resetting RPi GPIO."
+            GPIO.cleanup()
     
 def getSensorData(cmd):
     data = []
