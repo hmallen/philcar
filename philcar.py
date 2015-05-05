@@ -5,7 +5,7 @@ from time import strftime, localtime
 import datetime
 import serial
 import picamera
-
+import paramiko
 try:
     import RPi.GPIO as GPIO
 except RuntimeError:
@@ -24,13 +24,6 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setup(11, GPIO.OUT)
 GPIO.output(11, 1)
 GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-
-global dataUpdated
-global satellites, gpsLat, gpsLon, gpsAltitudeFt, gpsSpeedMPH, gpsCourse
-global accelX, accelY, accelZ
-global compX, compY, compZ
-global gyroX, gyroY, gyroZ
-global contMonth, contDay, contYear, contHour, contMinute, contSecond
 
 def mainLoop():
     try:
@@ -91,14 +84,6 @@ def getSensorData(cmd):
         parseString(data, cmd)
 
 def parseString(data, cmd):
-    global dataUpdated
-    global gpsLat, gpsLon
-    global satellites, hdop, gpsAltitudeFt, gpsSpeedMPH, gpsCourse
-    global accelX, accelY, accelZ
-    global compX, compY, compZ
-    global gyroX, gyroY, gyroZ
-    global contMonth, contDay, contYear, contHour, contMinute, contSecond
-
     if cmd == 1:
         gpsLat, gpsLon = str(data[0]).split(",")
         dataUpdated, hdop, satellites, gpsAltitudeFt, gpsSpeedMPH, gpsCourse = str(data[1]).split(",")
@@ -178,30 +163,102 @@ def parseString(data, cmd):
             print
 
 def xivelyUpdate(xivelyData):
-    api = xively.XivelyAPIClient("MKPFAnS47P9FJAV2D7vw5M9MmHWdsEnj7zuCuJiaoyvua8jO")
-    feed = api.feeds.get(1352564954)
-    streamList = [dataUpdated, gpsLat, gpsLon, satellites, hdop,
-                  gpsAltitudeFt, gpsSpeedMPH, gpsCourse]
+    XIVELY_API_KEY = 'MKPFAnS47P9FJAV2D7vw5M9MmHWdsEnj7zuCuJiaoyvua8jO'
+    XIVELY_FEED_ID = '1352564954'
+    api = xively.XivelyAPIClient(XIVELY_API_KEY)
+    feed = api.feeds.get(XIVELY_FEED_ID)
+    
+    streamList = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop',
+                  'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']
+
+    xivelyAccessFeed(feed, False)
+    
     feed.datastreams = [
-        xively.Datastreams(id=streamList[0], current_value=, at=now),
-        xively.Datastreams(id=streamList[1], current_value=, at=now),
-        xively.Datastreams(id=streamList[2], current_value=, at=now),
-        xively.Datastreams(id=streamList[3], current_value=, at=now),
-        xively.Datastreams(id=streamList[4], current_value=, at=now),
-        xively.Datastreams(id=streamList[5], current_value=, at=now),
-        xively.Datastreams(id=streamList[6], current_value=, at=now),
-        xively.Datastreams(id=streamList[7], current_value=, at=now)
+        xively.Datastreams(id=streamList[0], current_value=xivelyData[0], at=now),
+        xively.Datastreams(id=streamList[1], current_value=xivelyData[1], at=now),
+        xively.Datastreams(id=streamList[2], current_value=xivelyData[2], at=now),
+        xively.Datastreams(id=streamList[3], current_value=xivelyData[3], at=now),
+        xively.Datastreams(id=streamList[4], current_value=xivelyData[4], at=now),
+        xively.Datastreams(id=streamList[5], current_value=xivelyData[5], at=now),
+        xively.Datastreams(id=streamList[6], current_value=xivelyData[6], at=now),
+        xively.Datastreams(id=streamList[7], current_value=xivelyData[7], at=now)
     ]
+    feed.update()
+
+def xivelyAccessFeed(feed, returnRequest):
+    try:
+        dataUpdated = feed.datastreams.get('dataUpdated')
+    except:
+        dataUpdated = feed.datastreams.create('dataUpdated', tags='dataUpdated')
+        
+    try:
+        gpsLat = feed.datastreams.get('gpsLat')
+    except:
+        gpsLat = feed.datastreams.create('gpsLat', tags='gpsLat')
+        
+    try:
+        gpsLon = feed.datastreams.get('gpsLon')
+    except:
+        gpsLon = feed.datastreams.create('gpsLon', tags='gpsLon')
+        
+    try:
+        satellites = feed.datastreams.get('satellites')
+    except:
+        satellites = feed.datastreams.create('satellites', tags='satellites')
+        
+    try:
+        hdop = feed.datastreams.get('hdop')
+    except:
+        hdop = feed.datastreams.create('hdop', tags='hdop')
+        
+    try:
+        gpsAltitudeFt = feed.datastreams.get('gpsAltitudeFt')
+    except:
+        gpsAltitudeFt = feed.datastreams.create('gpsAltitudeFt', tags='gpsAltitudeFt')
+        
+    try:
+        gpsSpeedMPH = feed.datastreams.get('gpsSpeedMPH')
+    except:
+        gpsSpeedMPH = feed.datastreams.create('gpsSpeedMPH', tags='gpsSpeedMPH')
+        
+    try:
+        gpsCourse = feed.datastreams.get('gpsCourse')
+    except:
+        gpsCourse = feed.datastreams.create('gpsCourse', tags='gpsCourse')
+
+    if returnRequest == True:
+        return {'dataUpdatedXively':dataUpdated, 'gpsLatXively':gpsLat, 'gpsLonXively':gpsLon,
+                'satellitesXively':satellites, 'hdopXively':hdop, 'gpsAltitudeFtXively':gpsAltitudeFt,
+                'gpsSpeedMPHXively':gpsSpeedMPH, 'gpsCourseXively':gpsCourse}
+    
 
 def captureImage():
-    localroot = '/home/phil/datsun/'
-    filename = localroot + timeStamp() + '.jpg'
+    localroot = '/home/phil/datsun/images/'
+    remoteroot = '/home/datsun/images/'
+    filename = timeStamp() + '.jpg'
+    localpath = localroot + filename
+    remotepath = remoteroot + filename
+    
     with picamera.PiCamera() as camera:
         camera.resolution = (640, 480)
         camera.start_preview()
         time.sleep(4)
-        camera.capture(filename)
+        camera.capture(localpath)
         camera.stop_preview()
+
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect('162.218.209.90', username="datsun", password="amanojaku")
+        sftp = ssh.open_sftp()
+        sftp.put(localpath, remotepath)
+        sftp.close()
+        ssh.close()
+        if debugMode == True:
+            print "Image capture uploaded to server."
+    except:
+        if debugMode == True:
+            print "Image capture upload failed."
 
 def timeStamp():
     month = strftime('%m', localtime())
