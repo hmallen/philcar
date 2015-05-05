@@ -85,12 +85,15 @@ def getSensorData(cmd):
 
 def parseString(data, cmd):
     if cmd == 1:
-        gpsLat, gpsLon = str(data[0]).split(",")
-        dataUpdated, hdop, satellites, gpsAltitudeFt, gpsSpeedMPH, gpsCourse = str(data[1]).split(",")
-        dataUpdated = dataUpdated.strip("'")
-        gpsLat = gpsLat.strip("['")
-        gpsLon = gpsLon.strip("'")
-        gpsCourse = gpsCourse.strip("']")
+        try:
+            gpsLat, gpsLon = str(data[0]).split(",")
+            dataUpdated, hdop, satellites, gpsAltitudeFt, gpsSpeedMPH, gpsCourse = str(data[1]).split(",")
+            dataUpdated = dataUpdated.strip("'")
+            gpsLat = gpsLat.strip("['")
+            gpsLon = gpsLon.strip("'")
+            gpsCourse = gpsCourse.strip("']")
+        except:
+            print "Serial data unavailable or unparsable."
         if debugMode == True:
             print "GPS"
             print "Data Updated:  " + str(dataUpdated)
@@ -115,11 +118,14 @@ def parseString(data, cmd):
                 print
         
     elif cmd == 2:
-        accelX, accelY, accelZ = str(data[0]).split(",")
-        compX, compY, compZ = str(data[1]).split(",")
-        gyroX, gyroY, gyroZ = str(data[2]).split(",")
-        accelX = accelX.strip("['")
-        accelZ = accelZ.strip("'")
+        try:
+            accelX, accelY, accelZ = str(data[0]).split(",")
+            compX, compY, compZ = str(data[1]).split(",")
+            gyroX, gyroY, gyroZ = str(data[2]).split(",")
+            accelX = accelX.strip("['")
+            accelZ = accelZ.strip("'")
+        except:
+            print "Serial data unavailable or unparsable."
         if debugMode == True:
             print "ACCELEROMETER"
             print "X: " + str(accelX)
@@ -140,13 +146,16 @@ def parseString(data, cmd):
             print
         
     elif cmd == 3:
-        contDate, contTime = str(data).split(",")
-        contMonth, contDay, contYear = str(contDate).split("-")
-        contHour, contMinute, contSecond = str(contTime).split(":")
-        contMonth = contMonth.strip("['")
-        contYear = contYear.strip("'")
-        contHour = contHour.strip(" '")
-        contSecond = contSecond.strip("']")
+        try:
+            contDate, contTime = str(data).split(",")
+            contMonth, contDay, contYear = str(contDate).split("-")
+            contHour, contMinute, contSecond = str(contTime).split(":")
+            contMonth = contMonth.strip("['")
+            contYear = contYear.strip("'")
+            contHour = contHour.strip(" '")
+            contSecond = contSecond.strip("']")
+        except:
+            print "Serial data unavailable or unparsable."
         if debugMode == True:
             print "CONTROL UNIT DATE/TIME"
             print "Month:  " + str(contMonth)
@@ -274,6 +283,7 @@ def syncDelay():
     ser = serial.Serial('/dev/ttyACM0', 9600, timeout=5)
     while GPIO.input(12) == 0:
         setupString = ser.readline().strip('\r\n')
+        st()
         if GPIO.input(12) == 0:
             print str(setupString)
     time.sleep(3)
