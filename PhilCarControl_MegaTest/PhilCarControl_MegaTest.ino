@@ -151,8 +151,9 @@ void setup() {
     logFile.flush();
     logFile.close();
   }
-  digitalWrite(controlReadyOut, HIGH);
   Serial.println(F("Setup complete."));
+  digitalWrite(controlReadyOut, HIGH);
+  
 }
 
 void loop() {
@@ -645,9 +646,7 @@ void checkSMS() {
     Serial.flush();
 #endif
     //int smsLength = smsRaw.length();
-    Serial.println(F("1"));
     parseSMS(smsRaw);
-    Serial.println(F("2"));
     //Serial2.println("AT+CMGD=0,2");  // Delete all read messages
     smsFlush();
   }
@@ -772,7 +771,6 @@ void smsMenu() {
 }
 
 void smsStartup() {
-  Serial.println("1");
   // Software power-on of gprs shield
   digitalWrite(smsPowerPin, LOW);
   delay(100);
@@ -782,7 +780,6 @@ void smsStartup() {
   delay(100);
 
   delay(5000);
-  Serial.println("2");
   const int smsStartupDelay = 8000;
   int smsDelayStart = millis();
   boolean firstLoop = true;
@@ -803,7 +800,6 @@ void smsStartup() {
       smsDelayStart = millis();
     }
   }
-  Serial.println("3");
   // Configure GPRS output for proper parsing
   Serial2.println(F("ATE0"));
   delay(1000);
@@ -815,20 +811,15 @@ void smsStartup() {
   delay(1000);
   //Serial2.println(F("AT+CMGD=0,2"));  // Delete all saved texts
   //delay(1000);
-  Serial.println("4a");
   Serial2.flush();
   smsFlush();
-  Serial.println("4b");
 }
 
 void smsFlush() {
   if (Serial2.available()) {
-    Serial.println("5");
     while (Serial2.available()) {
-      //char c = Serial2.read();
-      Serial.write(Serial2.read());
+      char c = Serial2.read();
       delay(100);
     }
-    Serial.println("6");
   }
 }

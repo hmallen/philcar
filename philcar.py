@@ -20,10 +20,13 @@ if debugMode == True:
     print dateTimeLong
     print
 
+GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(11, GPIO.OUT)
 GPIO.output(11, 1)
 GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+
+
 
 def mainLoop():
     try:
@@ -32,19 +35,19 @@ def mainLoop():
                 syncDelay()
             for x in range(1, 4):
                 sensorData = getSensorData(x)
-                
+
                 time.sleep(3)
-            print "Data acquisition complete. Sleeping for 5 seconds."
+            print "Data acquisition complete. Sleeping for 10 seconds."
             print
-            time.sleep(5)
+            time.sleep(10)
     except KeyboardInterrupt or RuntimeError:
         print "Keyboard interrupt or runtime error detected. Resetting RPi GPIO."
         print
         GPIO.cleanup()
-    
+
 def getSensorData(cmd):
     data = []
-    
+
     ser = serial.Serial('/dev/ttyACM0', 9600, timeout=5)
 
     if cmd == 1:
@@ -54,7 +57,7 @@ def getSensorData(cmd):
         data.append(gpsCoordString)
         gpsDataString = ser.readline().strip('\r\n')
         data.append(gpsDataString)
-        
+
     elif cmd == 2:
         ser.write('2')
         st()
@@ -64,7 +67,7 @@ def getSensorData(cmd):
         data.append(compassString)
         gyroscopeString = ser.readline().strip('\r\n')
         data.append(gyroscopeString)
-        
+
     elif cmd == 3:
         ser.write('3')
         st()
@@ -79,20 +82,12 @@ def getSensorData(cmd):
         captureImage()
         if debugMode == True:
             print "IR LED check performed. Capturing image."
-        
+
     if cmd != 4:
         parseString(data, cmd)
 
 def parseString(data, cmd):
     if cmd == 1:
-<<<<<<< HEAD
-        gpsLat, gpsLon = data[0].split(",")
-        dataUpdated, hdop, satellites, gpsAltitudeFt, gpsSpeedMPH, gpsCourse = data[1].split(",")
-        dataUpdated = dataUpdated.strip("'")
-        gpsLat = gpsLat.strip("['")
-        gpsLon = gpsLon.strip("'")
-        gpsCourse = gpsCourse.strip("']")
-=======
         try:
             gpsLat, gpsLon = str(data[0]).split(",")
             dataUpdated, hdop, satellites, gpsAltitudeFt, gpsSpeedMPH, gpsCourse = str(data[1]).split(",")
@@ -102,20 +97,24 @@ def parseString(data, cmd):
             gpsCourse = gpsCourse.strip("']")
         except:
             print "Serial data unavailable or unparsable."
->>>>>>> 5fc5f2650f64c833a535792fec8b0729db59ddf9
+
         if debugMode == True:
             print "GPS"
-            print "Data Updated:  " + str(dataUpdated)
-            print "GPS Latitude:  " + str(gpsLat)
-            print "GPS Longitude: " + str(gpsLon)
-            print "Satellites:    " + str(satellites)
-            print "HDOP:          " + str(hdop)
-            print "Altitude (ft): " + str(gpsAltitudeFt)
-            print "Speed (MPH):   " + str(gpsSpeedMPH)
-            print "Course:        " + str(gpsCourse)
+            print "Data Updated:  " + dataUpdated
+            print "GPS Latitude:  " + gpsLat
+            print "GPS Longitude: " + gpsLon
+            print "Satellites:    " + satellites
+            print "HDOP:          " + hdop
+            print "Altitude (ft): " + gpsAltitudeFt
+            print "Speed (MPH):   " + gpsSpeedMPH
+            print "Course:        " + gpsCourse
             print
-        xivelyData = [int(dataUpdated), float(gpsLat), float(gpsLon), int(satellites), int(hdop),
-                      float(gpsAltitudeFt), float(gpsSpeedMPH), float(gpsCourse)]
+
+        xivelyData = [dataUpdated, gpsLat, gpsLon, satellites, hdop,
+                      gpsAltitudeFt, gpsSpeedMPH, gpsCourse]
+
+        """xivelyData = [int(dataUpdated), float(gpsLat), float(gpsLon), int(satellites), int(hdop),
+                      float(gpsAltitudeFt), float(gpsSpeedMPH), float(gpsCourse)]"""
         try:
             xivelyUpdate(xivelyData)
             if debugMode == True:
@@ -125,7 +124,7 @@ def parseString(data, cmd):
             if debugMode == True:
                 print "Data failed to upload to Xively."
                 print
-        
+
     elif cmd == 2:
         try:
             accelX, accelY, accelZ = str(data[0]).split(",")
@@ -135,6 +134,7 @@ def parseString(data, cmd):
             accelZ = accelZ.strip("'")
         except:
             print "Serial data unavailable or unparsable."
+
         if debugMode == True:
             print "ACCELEROMETER"
             print "X: " + str(accelX)
@@ -153,7 +153,7 @@ def parseString(data, cmd):
             print "Y: " + str(gyroY)
             print "Z: " + str(gyroZ)
             print
-        
+
     elif cmd == 3:
         try:
             contDate, contTime = str(data).split(",")
@@ -165,6 +165,7 @@ def parseString(data, cmd):
             contSecond = contSecond.strip("']")
         except:
             print "Serial data unavailable or unparsable."
+
         if debugMode == True:
             print "CONTROL UNIT DATE/TIME"
             print "Month:  " + str(contMonth)
@@ -174,7 +175,7 @@ def parseString(data, cmd):
             print "Minute: " + str(contMinute)
             print "Second: " + str(contSecond)
             print
-        
+
     else:
         if debugMode == True:
             print "Invalid command."
@@ -185,12 +186,16 @@ def xivelyUpdate(xivelyData):
     XIVELY_FEED_ID = '1352564954'
     api = xively.XivelyAPIClient(XIVELY_API_KEY)
     feed = api.feeds.get(XIVELY_FEED_ID)
-    
-    streamList = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop',
-                  'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']
 
-    xivelyAccessFeed(feed, False)
-    
+    """streamList = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop',
+                  'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']"""
+
+    for x in range(0, 8):
+        print xivelyData[x]
+        time.sleep(1)
+
+    streamList = xivelyAccessFeed(feed, True)
+
     feed.datastreams = [
         xively.Datastreams(id=streamList[0], current_value=xivelyData[0], at=now),
         xively.Datastreams(id=streamList[1], current_value=xivelyData[1], at=now),
@@ -208,37 +213,30 @@ def xivelyAccessFeed(feed, returnRequest):
         dataUpdated = feed.datastreams.get('dataUpdated')
     except:
         dataUpdated = feed.datastreams.create('dataUpdated', tags='dataUpdated')
-        
     try:
         gpsLat = feed.datastreams.get('gpsLat')
     except:
         gpsLat = feed.datastreams.create('gpsLat', tags='gpsLat')
-        
     try:
         gpsLon = feed.datastreams.get('gpsLon')
     except:
         gpsLon = feed.datastreams.create('gpsLon', tags='gpsLon')
-        
     try:
         satellites = feed.datastreams.get('satellites')
     except:
         satellites = feed.datastreams.create('satellites', tags='satellites')
-        
     try:
         hdop = feed.datastreams.get('hdop')
     except:
         hdop = feed.datastreams.create('hdop', tags='hdop')
-        
     try:
         gpsAltitudeFt = feed.datastreams.get('gpsAltitudeFt')
     except:
         gpsAltitudeFt = feed.datastreams.create('gpsAltitudeFt', tags='gpsAltitudeFt')
-        
     try:
         gpsSpeedMPH = feed.datastreams.get('gpsSpeedMPH')
     except:
         gpsSpeedMPH = feed.datastreams.create('gpsSpeedMPH', tags='gpsSpeedMPH')
-        
     try:
         gpsCourse = feed.datastreams.get('gpsCourse')
     except:
@@ -248,7 +246,7 @@ def xivelyAccessFeed(feed, returnRequest):
         return {'dataUpdatedXively':dataUpdated, 'gpsLatXively':gpsLat, 'gpsLonXively':gpsLon,
                 'satellitesXively':satellites, 'hdopXively':hdop, 'gpsAltitudeFtXively':gpsAltitudeFt,
                 'gpsSpeedMPHXively':gpsSpeedMPH, 'gpsCourseXively':gpsCourse}
-    
+
 
 def captureImage():
     localroot = '/home/phil/datsun/images/'
@@ -256,7 +254,7 @@ def captureImage():
     filename = timeStamp() + '.jpg'
     localpath = localroot + filename
     remotepath = remoteroot + filename
-    
+
     with picamera.PiCamera() as camera:
         camera.resolution = (640, 480)
         camera.start_preview()
