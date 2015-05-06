@@ -38,7 +38,7 @@ GPIO.output(11, 1)
 GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
 
 def mainLoop():
-    loopCount++
+    loopCount += 1
     if firstLoop == True:
         datastreams = xivelyGetDatastreams(feed)
         datastreams['dataUpdatedXively'].max_value = None
