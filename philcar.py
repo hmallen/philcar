@@ -12,8 +12,8 @@ try:
 except RuntimeError:
     print "Error importing RPi.GPIO! This is probably because you need superuser privileges. You can achieve this by using 'sudo' to run your script."
 
-global debugMode
-global sensorDebug
+#global debugMode
+#global sensorDebug
 global firstLoop
 global tripMode
 debugMode = True
