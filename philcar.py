@@ -63,6 +63,10 @@ def mainLoop():
         firstLoop = False
 
     sensorData = getSensorData(1)
+    if debugMode == True:
+        print xivelyHeader
+        print sensorData
+        delay(10)
     xivelyUpdate(sensorData)
     csvWriteData(sensorData)
 
