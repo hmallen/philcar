@@ -116,20 +116,19 @@ def parseString(data, cmd):
             gpsLat = gpsLat.strip("['")
             gpsLon = gpsLon.strip("'")
             gpsCourse = gpsCourse.strip("']")
+            if sensorDebug == True:
+                print "GPS"
+                print "Data Updated:  " + dataUpdated
+                print "GPS Latitude:  " + gpsLat
+                print "GPS Longitude: " + gpsLon
+                print "Satellites:    " + satellites
+                print "HDOP:          " + hdop
+                print "Altitude (ft): " + gpsAltitudeFt
+                print "Speed (MPH):   " + gpsSpeedMPH
+                print "Course:        " + gpsCourse
+                print
         except:
             print "Serial data unavailable or unparsable."
-
-        if debugMode == True:
-            print "GPS"
-            print "Data Updated:  " + dataUpdated
-            print "GPS Latitude:  " + gpsLat
-            print "GPS Longitude: " + gpsLon
-            print "Satellites:    " + satellites
-            print "HDOP:          " + hdop
-            print "Altitude (ft): " + gpsAltitudeFt
-            print "Speed (MPH):   " + gpsSpeedMPH
-            print "Course:        " + gpsCourse
-            print
 
     elif cmd == 2:
         try:
@@ -138,27 +137,26 @@ def parseString(data, cmd):
             gyroX, gyroY, gyroZ = str(data[2]).split(",")
             accelX = accelX.strip("['")
             accelZ = accelZ.strip("'")
+            if sensorDebug == True:
+                print "ACCELEROMETER"
+                print "X: " + str(accelX)
+                print "Y: " + str(accelY)
+                print "Z: " + str(accelZ)
+                print "COMPASS"
+                compX = compX.strip("'")
+                compZ = compZ.strip("'")
+                print "X: " + str(compX)
+                print "Y: " + str(compY)
+                print "Z: " + str(compZ)
+                print "GYROSCOPE"
+                gyroX = gyroX.strip("'")
+                gyroZ = gyroZ.strip("']")
+                print "X: " + str(gyroX)
+                print "Y: " + str(gyroY)
+                print "Z: " + str(gyroZ)
+                print
         except:
             print "Serial data unavailable or unparsable."
-
-        if debugMode == True:
-            print "ACCELEROMETER"
-            print "X: " + str(accelX)
-            print "Y: " + str(accelY)
-            print "Z: " + str(accelZ)
-            print "COMPASS"
-            compX = compX.strip("'")
-            compZ = compZ.strip("'")
-            print "X: " + str(compX)
-            print "Y: " + str(compY)
-            print "Z: " + str(compZ)
-            print "GYROSCOPE"
-            gyroX = gyroX.strip("'")
-            gyroZ = gyroZ.strip("']")
-            print "X: " + str(gyroX)
-            print "Y: " + str(gyroY)
-            print "Z: " + str(gyroZ)
-            print
 
     elif cmd == 3:
         try:
@@ -169,18 +167,17 @@ def parseString(data, cmd):
             contYear = contYear.strip("'")
             contHour = contHour.strip(" '")
             contSecond = contSecond.strip("']")
+            if sensorDebug == True:
+                print "CONTROL UNIT DATE/TIME"
+                print "Month:  " + str(contMonth)
+                print "Day:    " + str(contDay)
+                print "Year:   " + str(contYear)
+                print "Hour:   " + str(contHour)
+                print "Minute: " + str(contMinute)
+                print "Second: " + str(contSecond)
+                print
         except:
             print "Serial data unavailable or unparsable."
-
-        if debugMode == True:
-            print "CONTROL UNIT DATE/TIME"
-            print "Month:  " + str(contMonth)
-            print "Day:    " + str(contDay)
-            print "Year:   " + str(contYear)
-            print "Hour:   " + str(contHour)
-            print "Minute: " + str(contMinute)
-            print "Second: " + str(contSecond)
-            print
 
     else:
         if debugMode == True:
