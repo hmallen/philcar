@@ -12,10 +12,13 @@ try:
 except RuntimeError:
     print "Error importing RPi.GPIO! This is probably because you need superuser privileges. You can achieve this by using 'sudo' to run your script."
 
+global debugMode
+global sensorDebug
+global firstLoop
+global tripMode
 debugMode = True
 sensorDebug = False
 firstLoop = True
-
 tripMode = False
 
 dateTimeLong = strftime('%c', localtime())
@@ -24,11 +27,12 @@ if debugMode == True:
     print dateTimeLong
     print
 
+global feed
 XIVELY_API_KEY = 'MKPFAnS47P9FJAV2D7vw5M9MmHWdsEnj7zuCuJiaoyvua8jO'
 XIVELY_FEED_ID = '1352564954'
 api = xively.XivelyAPIClient(XIVELY_API_KEY)
 feed = api.feeds.get(XIVELY_FEED_ID)
-
+global xivelyHeader
 xivelyHeader = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop', 'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']
 
 GPIO.setwarnings(False)
@@ -38,6 +42,8 @@ GPIO.output(11, 1)
 GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
 
 def mainLoop():
+    global firstLoop
+    global feed
     if firstLoop == True:
         datastreams = xivelyGetDatastreams(feed)
         datastreams['dataUpdated'].max_value = None
@@ -63,6 +69,7 @@ def mainLoop():
     csvWriteData(sensorData)
 
 def getSensorData(cmd):
+    global debugMode
     data = []
 
     ser = serial.Serial('/dev/ttyACM0', 9600, timeout=5)
@@ -104,6 +111,7 @@ def getSensorData(cmd):
         parseString(data, cmd)
 
 def parseString(data, cmd):
+    global debugMode
     if cmd == 1:
         try:
             gpsLat, gpsLon = str(data[0]).split(",")
@@ -184,6 +192,8 @@ def parseString(data, cmd):
             print
 
 def xivelyUpdate(xivelyData):
+    global debugMode
+    global feed
     datastreams = xivelyGetDatastreams(feed)
     try:
         datastreams['dataUpdatedXively'].current_value = sensorData[0]
@@ -223,6 +233,7 @@ def xivelyUpdate(xivelyData):
             print
 
 def xivelyGetDatastreams(feed):
+    global debugMode
     try:
         dataUpdated = feed.datastreams.get('dataUpdated')
     except:
@@ -277,6 +288,7 @@ def xivelyGetDatastreams(feed):
             'gpsSpeedMPHXively':gpsSpeedMPH, 'gpsCourseXively':gpsCourse}
 
 def csvWriteData(sensorData):
+    global xivelyHeader
     localroot = '/home/pi/mystall-client/logs/'
     filename = timeStamp(2) + '.csv'
     filepath = localroot + filename
@@ -302,6 +314,7 @@ def csvWriteData(sensorData):
 
 
 def captureImage():
+    global debugMode
     localroot = '/home/phil/datsun/images/'
     remoteroot = '/home/datsun/images/'
     filename = timeStamp(1) + '.jpg'
@@ -351,12 +364,14 @@ def timeStamp(cmd):
     return currentDateTime
 
 def syncDelay():
+    global debugMode
     ser = serial.Serial('/dev/ttyACM0', 9600, timeout=5)
     while GPIO.input(12) == 0:
         setupString = ser.readline().strip('\r\n')
         st()
         if GPIO.input(12) == 0:
-            print str(setupString)
+            if debugMode == True:
+                print str(setupString)
     time.sleep(3)
     ser.flushInput()
 
@@ -366,6 +381,8 @@ def st():
 syncDelay()
 
 while True:
+    global debugMode
+    global sensorDebug
     try:
         while GPIO.input(12) == 1:
             if sensorDebug == True:
