@@ -34,10 +34,15 @@ global xivelyHeader
 xivelyHeader = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop', 'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']
 
 GPIO.setwarnings(False)
+time.sleep(1)
 GPIO.setmode(GPIO.BOARD)
+time.sleep(1)
 GPIO.setup(11, GPIO.OUT)
+time.sleep(1)
 GPIO.output(11, 1)
+time.sleep(1)
 GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+time.sleep(1)
 
 def mainLoop():
     global firstLoop
@@ -66,7 +71,7 @@ def mainLoop():
     if debugMode == True:
         print xivelyHeader
         print sensorData
-        delay(10)
+        time.sleep(10)
     xivelyUpdate(sensorData)
     csvWriteData(sensorData)
 
@@ -108,7 +113,7 @@ def getSensorData(cmd):
         if debugMode == True:
             print "IR LED check performed. Capturing image."
 
-    if cmd != 4:
+    if cmd is not 4:
         dataString = parseString(data, cmd)
         return dataString
 
@@ -121,6 +126,7 @@ def parseString(data, cmd):
             gpsLat = gpsLat.strip("['")
             gpsLon = gpsLon.strip("'")
             gpsCourse = gpsCourse.strip("']")
+            data = [dataUpdated, gpsLat, gpsLon, satellites, hdop, gpsAltitudeFt, gpsSpeedMPH, gpsCourse]
             if sensorDebug == True:
                 print "GPS"
                 print "Data Updated:  " + dataUpdated
@@ -134,6 +140,8 @@ def parseString(data, cmd):
                 print
         except:
             print "Serial data unavailable or unparsable."
+        return data
+            
 
     elif cmd == 2:
         try:
@@ -360,7 +368,7 @@ def timeStamp(cmd):
 
 def syncDelay():
     ser = serial.Serial('/dev/ttyACM0', 9600, timeout=5)
-    while GPIO.input(12) == 0:
+    while GPIO.input(12) == 0 or ser.inWaiting():
         setupString = ser.readline().strip('\r\n')
         st()
         if GPIO.input(12) == 0:

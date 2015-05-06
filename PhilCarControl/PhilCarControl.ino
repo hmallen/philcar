@@ -114,16 +114,16 @@ void setup() {
   if (!SD.begin(chipSelect, SPI_FULL_SPEED)) SD.initErrorHalt();
 #ifdef debugMode
   else Serial.println(F("SD card initialized."));
+
+  Serial.println(F("Waiting for sensor unit..."));
 #endif
-  if (digitalRead(sensorReadyIn) == LOW) {
-#ifdef debugMode
-    Serial.println(F("Waiting for sensor unit..."));
-#endif
-    while (digitalRead(sensorReadyIn) == LOW) {
-#ifdef debugMode
-      Serial.write(Serial1.read());
-#endif
-      delay(100);
+  while (digitalRead(sensorReadyIn) == LOW) {
+    if (Serial1.available()) {
+      while (Serial1.available()) {
+        char c = Serial1.read();
+        delay(10);
+      }
+      delay(10);
     }
   }
   if (digitalRead(sensorReadyIn) == HIGH) {
@@ -153,7 +153,7 @@ void setup() {
   }
   Serial.println(F("Setup complete."));
   digitalWrite(controlReadyOut, HIGH);
-  
+
 }
 
 void loop() {
@@ -823,3 +823,4 @@ void smsFlush() {
     }
   }
 }
+
