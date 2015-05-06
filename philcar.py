@@ -12,8 +12,6 @@ try:
 except RuntimeError:
     print "Error importing RPi.GPIO! This is probably because you need superuser privileges. You can achieve this by using 'sudo' to run your script."
 
-#global debugMode
-#global sensorDebug
 global firstLoop
 global tripMode
 debugMode = True
@@ -46,22 +44,22 @@ def mainLoop():
     global feed
     if firstLoop == True:
         datastreams = xivelyGetDatastreams(feed)
-        datastreams['dataUpdated'].max_value = None
-        datastreams['dataUpdated'].min_value = None
-        datastreams['gpsLat'].max_value = None
-        datastreams['gpsLat'].min_value = None
-        datastreams['gpsLon'].max_value = None
-        datastreams['gpsLon'].min_value = None
-        datastreams['satellites'].max_value = None
-        datastreams['satellites'].min_value = None
-        datastreams['hdop'].max_value = None
-        datastreams['hdop'].min_value = None
-        datastreams['gpsAltitudeFt'].max_value = None
-        datastreams['gpsAltitudeFt'].min_value = None
-        datastreams['gpsSpeedMPH'].max_value = None
-        datastreams['gpsSpeedMPH'].min_value = None
-        datastreams['gpsCourse'].max_value = None
-        datastreams['gpsCourse'].min_value = None
+        datastreams['dataUpdatedXively'].max_value = None
+        datastreams['dataUpdatedXively'].min_value = None
+        datastreams['gpsLatXively'].max_value = None
+        datastreams['gpsLatXively'].min_value = None
+        datastreams['gpsLonXively'].max_value = None
+        datastreams['gpsLonXively'].min_value = None
+        datastreams['satellitesXively'].max_value = None
+        datastreams['satellitesXively'].min_value = None
+        datastreams['hdopXively'].max_value = None
+        datastreams['hdopXively'].min_value = None
+        datastreams['gpsAltitudeFtXively'].max_value = None
+        datastreams['gpsAltitudeFtXively'].min_value = None
+        datastreams['gpsSpeedMPHXively'].max_value = None
+        datastreams['gpsSpeedMPHXively'].min_value = None
+        datastreams['gpsCourseXively'].max_value = None
+        datastreams['gpsCourseXively'].min_value = None
         firstLoop = False
 
     getSensorData(1)
@@ -69,7 +67,6 @@ def mainLoop():
     csvWriteData(sensorData)
 
 def getSensorData(cmd):
-    global debugMode
     data = []
 
     ser = serial.Serial('/dev/ttyACM0', 9600, timeout=5)
@@ -111,7 +108,6 @@ def getSensorData(cmd):
         parseString(data, cmd)
 
 def parseString(data, cmd):
-    global debugMode
     if cmd == 1:
         try:
             gpsLat, gpsLon = str(data[0]).split(",")
@@ -192,7 +188,6 @@ def parseString(data, cmd):
             print
 
 def xivelyUpdate(xivelyData):
-    global debugMode
     global feed
     datastreams = xivelyGetDatastreams(feed)
     try:
@@ -233,7 +228,6 @@ def xivelyUpdate(xivelyData):
             print
 
 def xivelyGetDatastreams(feed):
-    global debugMode
     try:
         dataUpdated = feed.datastreams.get('dataUpdated')
     except:
@@ -314,7 +308,6 @@ def csvWriteData(sensorData):
 
 
 def captureImage():
-    global debugMode
     localroot = '/home/phil/datsun/images/'
     remoteroot = '/home/datsun/images/'
     filename = timeStamp(1) + '.jpg'
@@ -364,7 +357,6 @@ def timeStamp(cmd):
     return currentDateTime
 
 def syncDelay():
-    global debugMode
     ser = serial.Serial('/dev/ttyACM0', 9600, timeout=5)
     while GPIO.input(12) == 0:
         setupString = ser.readline().strip('\r\n')
@@ -381,8 +373,6 @@ def st():
 syncDelay()
 
 while True:
-    global debugMode
-    global sensorDebug
     try:
         while GPIO.input(12) == 1:
             if sensorDebug == True:
