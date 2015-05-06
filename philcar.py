@@ -32,7 +32,6 @@ feed = api.feeds.get(XIVELY_FEED_ID)
 global xivelyHeader
 xivelyHeader = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop', 'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']
 
-
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(11, GPIO.OUT)
 GPIO.output(11, 1)
@@ -375,25 +374,26 @@ def syncDelay():
 def st():
     time.sleep(.5)
 
-try:
-    syncDelay()
-    while True:
-        while GPIO.input(12) == 1:
-                if sensorDebug == True:
-                    for x in range(1, 4):
-                        sensorData = getSensorData(x)
-                        time.sleep(3)
-                    debugDataPrint()
-                else:
-                    while tripMode == False and GPIO.input(12) == 1:
-                        sleepTime = 60
-                        mainLoop()
-                        if debugMode == True:    
-                            print "Data acquisition complete. Sleeping for " + str(sleepTime) + " seconds."
-                            print
-                        time.sleep(sleepTime)
-except KeyboardInterrupt or RuntimeError:
-    print "Keyboard interrupt or runtime error detected. Resetting RPi GPIO."
-    print
-    GPIO.cleanup()
-    syncDelay()
+syncDelay()
+
+while True:
+    try:
+        while GPIO.input(12) == GPIO.HIGH:
+            if sensorDebug == True:
+                for x in range(1, 4):
+                    sensorData = getSensorData(x)
+                    time.sleep(3)
+                debugDataPrint()
+            else:
+                while tripMode == False and GPIO.input(12) == 1:
+                    sleepTime = 60
+                    mainLoop()
+                    if debugMode == True:    
+                        print "Data acquisition complete. Sleeping for " + str(sleepTime) + " seconds."
+                        print
+                    time.sleep(sleepTime)
+    except KeyboardInterrupt or RuntimeError:
+        print "Keyboard interrupt or runtime error detected. Resetting RPi GPIO."
+        print
+        GPIO.cleanup()
+        syncDelay()
