@@ -113,7 +113,7 @@ def parseString(data, cmd):
     if cmd == 1:
         try:
             gpsLat, gpsLon = str(data[0]).split(",")
-            dataUpdated, hdop, satellites, gpsAltitudeFt, gpsSpeedMPH, gpsCourse = str(data[1]).split(",")
+            dataUpdated, satellites, hdop, gpsAltitudeFt, gpsSpeedMPH, gpsCourse = str(data[1]).split(",")
             dataUpdated = dataUpdated.strip("'")
             gpsLat = gpsLat.strip("['")
             gpsLon = gpsLon.strip("'")
