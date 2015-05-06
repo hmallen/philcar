@@ -12,12 +12,12 @@ try:
 except RuntimeError:
     print "Error importing RPi.GPIO! This is probably because you need superuser privileges. You can achieve this by using 'sudo' to run your script."
 
-global firstLoop
 global tripMode
 debugMode = True
 sensorDebug = False
 firstLoop = True
 tripMode = False
+loopCount = 0
 
 dateTimeLong = strftime('%c', localtime())
 
@@ -38,7 +38,7 @@ GPIO.output(11, 1)
 GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
 
 def mainLoop():
-    global firstLoop
+    loopCount++
     if firstLoop == True:
         datastreams = xivelyGetDatastreams(feed)
         datastreams['dataUpdatedXively'].max_value = None
@@ -65,6 +65,9 @@ def mainLoop():
         print sensorData
     xivelyUpdate(sensorData)
     csvWriteData(sensorData)
+    if loopCount == 5:
+        captureImage()
+        loopCount = 0
 
 def getSensorData(cmd):
     data = []
@@ -375,6 +378,7 @@ def st():
     time.sleep(.5)
 
 syncDelay()
+captureImage()
 
 while True:
     try:
