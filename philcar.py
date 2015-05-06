@@ -69,6 +69,7 @@ def mainLoop():
     if debugMode == True:
         print xivelyHeader
         print sensorData
+        print
     xivelyUpdate(sensorData)
     csvWriteData(sensorData)
     if loopCount == 5:
