@@ -12,12 +12,14 @@ try:
 except RuntimeError:
     print "Error importing RPi.GPIO! This is probably because you need superuser privileges. You can achieve this by using 'sudo' to run your script."
 
-global tripMode
-global loopCount
+global xivelyHeader
+
 debugMode = True
 sensorDebug = False
+global firstLoop
 firstLoop = True
 tripMode = False
+global loopCount
 loopCount = 0
 
 dateTimeLong = strftime('%c', localtime())
@@ -30,7 +32,7 @@ XIVELY_API_KEY = 'MKPFAnS47P9FJAV2D7vw5M9MmHWdsEnj7zuCuJiaoyvua8jO'
 XIVELY_FEED_ID = '1352564954'
 api = xively.XivelyAPIClient(XIVELY_API_KEY)
 feed = api.feeds.get(XIVELY_FEED_ID)
-global xivelyHeader
+
 xivelyHeader = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop', 'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']
 
 GPIO.setmode(GPIO.BOARD)
@@ -39,9 +41,11 @@ GPIO.output(11, 1)
 GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
 
 def mainLoop():
+    global firstLoop
     global loopCount
-    loopCount += 1
+    loopCount = loopCount + 1
     if firstLoop == True:
+        captureImage()
         datastreams = xivelyGetDatastreams(feed)
         datastreams['dataUpdatedXively'].max_value = None
         datastreams['dataUpdatedXively'].min_value = None
@@ -366,7 +370,7 @@ def timeStamp(cmd):
 
 def syncDelay():
     ser = serial.Serial('/dev/ttyACM0', 9600, timeout=5)
-    while GPIO.input(12) == 0:
+    while GPIO.input(12) == GPIO.LOW:
         setupString = ser.readline().strip('\r\n')
         st()
         if GPIO.input(12) == 0:
@@ -380,7 +384,6 @@ def st():
     time.sleep(.5)
 
 syncDelay()
-captureImage()
 
 while True:
     try:
