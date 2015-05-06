@@ -343,6 +343,8 @@ def captureImage():
         sftp = ssh.open_sftp()
         sftp.put(localpath, remotepath)
         sftp.close()
+        sshCommand = 'cp -u ' + remotepath + ' ~/live.jpg'
+        ssh.exec_command(sshCommand)
         ssh.close()
         if debugMode == True:
             print "Uploaded to server."
