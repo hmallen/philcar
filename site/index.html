@@ -55,7 +55,7 @@
     <div class="container">
       <!-- Example row of columns -->
       <div class="row">
-        <div class="col-md-8">
+        <div class="col-md-4">
           <h2>Current Location</h2>
           <p><b>Data Updated:  </b><span id="dataUpdated"></span></p>
           <p><b>GPS Latitude:  </b><span id="gpsLat"></span></p>
@@ -66,7 +66,7 @@
           <p><b>Speed(MPH):    </b><span id="gpsSpeedMPH"></span></p>
           <p><b>Course:        </b><span id="gpsCourse"></span></p>
         </div>
-        <div class="col-md-8">
+        <div class="col-md-4">
           <p>
             <iframe
               width="600"
@@ -74,6 +74,16 @@
               frameborder="0" style="border:0"
               src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBQCYHsfgcnL6Gj2uckoaeN6PIWonWHDgg
               &q=Oak+Cliff,Dallas+TX">
+            </iframe>
+          </p>
+       </div>
+       <div class="col-md-4">
+          <p>
+            <iframe
+              width="600"
+              height="450"
+              frameborder="0" style="border:0"
+              id="mapsLink">
             </iframe>
           </p>
        </div>
@@ -90,7 +100,6 @@
         <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
         <script src="js/vendor/bootstrap.min.js"></script>
         <script src="http://d23cj0cdvyoxg0.cloudfront.net/xivelyjs-1.0.4.min.js"></script>
-        <script src="js/xively-feed.js"></script>
         <script src="js/main.js"></script>
         <script>
             (function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
