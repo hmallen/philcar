@@ -32,16 +32,12 @@ feed = api.feeds.get(XIVELY_FEED_ID)
 global xivelyHeader
 xivelyHeader = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop', 'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']
 
-GPIO.setwarnings(False)
-time.sleep(1)
+GPIO.cleanup()
+time.sleep(3)
 GPIO.setmode(GPIO.BOARD)
-time.sleep(1)
 GPIO.setup(11, GPIO.OUT)
-time.sleep(1)
 GPIO.output(11, 1)
-time.sleep(1)
 GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-time.sleep(1)
 
 def mainLoop():
     global firstLoop
@@ -365,7 +361,7 @@ def timeStamp(cmd):
 
 def syncDelay():
     ser = serial.Serial('/dev/ttyACM0', 9600, timeout=5)
-    while GPIO.input(12) == 0 or ser.inWaiting():
+    while GPIO.input(12) == 0:
         setupString = ser.readline().strip('\r\n')
         st()
         if GPIO.input(12) == 0:
