@@ -62,7 +62,7 @@ def mainLoop():
         datastreams['gpsCourseXively'].min_value = None
         firstLoop = False
 
-    getSensorData(1)
+    sensorData = getSensorData(1)
     xivelyUpdate(sensorData)
     csvWriteData(sensorData)
 
@@ -105,7 +105,8 @@ def getSensorData(cmd):
             print "IR LED check performed. Capturing image."
 
     if cmd != 4:
-        parseString(data, cmd)
+        dataString = parseString(data, cmd)
+        return dataString
 
 def parseString(data, cmd):
     if cmd == 1:
