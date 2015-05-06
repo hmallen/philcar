@@ -281,7 +281,7 @@ def xivelyGetDatastreams(feed):
 
 def csvWriteData(sensorData):
     global xivelyHeader
-    localroot = '/home/pi/mystall-client/logs/'
+    localroot = '/home/phil/datsun/logs/'
     filename = timeStamp(2) + '.csv'
     filepath = localroot + filename
     
