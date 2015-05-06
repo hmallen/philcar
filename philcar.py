@@ -6,13 +6,17 @@ import datetime
 import serial
 import picamera
 import paramiko
+import xively
 try:
     import RPi.GPIO as GPIO
 except RuntimeError:
     print "Error importing RPi.GPIO! This is probably because you need superuser privileges. You can achieve this by using 'sudo' to run your script."
-import xively
 
 debugMode = True
+sensorDebug = True
+firstLoop = True
+
+tripMode = False
 
 dateTimeLong = strftime('%c', localtime())
 
@@ -20,30 +24,43 @@ if debugMode == True:
     print dateTimeLong
     print
 
+XIVELY_API_KEY = 'MKPFAnS47P9FJAV2D7vw5M9MmHWdsEnj7zuCuJiaoyvua8jO'
+XIVELY_FEED_ID = '1352564954'
+api = xively.XivelyAPIClient(XIVELY_API_KEY)
+feed = api.feeds.get(XIVELY_FEED_ID)
+
+xivelyHeader = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop', 'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']
+
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(11, GPIO.OUT)
 GPIO.output(11, 1)
 GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
 
-
-
 def mainLoop():
-    try:
-        while True:
-            if GPIO.input(12) == 0:
-                syncDelay()
-            for x in range(1, 4):
-                sensorData = getSensorData(x)
+    if firstLoop == True:
+        datastreams = xivelyGetDatastreams(feed)
+        datastreams['dataUpdated'].max_value = None
+        datastreams['dataUpdated'].min_value = None
+        datastreams['gpsLat'].max_value = None
+        datastreams['gpsLat'].min_value = None
+        datastreams['gpsLon'].max_value = None
+        datastreams['gpsLon'].min_value = None
+        datastreams['satellites'].max_value = None
+        datastreams['satellites'].min_value = None
+        datastreams['hdop'].max_value = None
+        datastreams['hdop'].min_value = None
+        datastreams['gpsAltitudeFt'].max_value = None
+        datastreams['gpsAltitudeFt'].min_value = None
+        datastreams['gpsSpeedMPH'].max_value = None
+        datastreams['gpsSpeedMPH'].min_value = None
+        datastreams['gpsCourse'].max_value = None
+        datastreams['gpsCourse'].min_value = None
+        firstLoop = False
 
-                time.sleep(3)
-            print "Data acquisition complete. Sleeping for 10 seconds."
-            print
-            time.sleep(10)
-    except KeyboardInterrupt or RuntimeError:
-        print "Keyboard interrupt or runtime error detected. Resetting RPi GPIO."
-        print
-        GPIO.cleanup()
+    getSensorData(1)
+    xivelyUpdate(sensorData)
+    csvWriteData(sensorData)
 
 def getSensorData(cmd):
     data = []
@@ -110,21 +127,6 @@ def parseString(data, cmd):
             print "Course:        " + gpsCourse
             print
 
-        xivelyData = [dataUpdated, gpsLat, gpsLon, satellites, hdop,
-                      gpsAltitudeFt, gpsSpeedMPH, gpsCourse]
-
-        """xivelyData = [int(dataUpdated), float(gpsLat), float(gpsLon), int(satellites), int(hdop),
-                      float(gpsAltitudeFt), float(gpsSpeedMPH), float(gpsCourse)]"""
-        try:
-            xivelyUpdate(xivelyData)
-            if debugMode == True:
-                print "Data successfully uploaded to Xively."
-                print
-        except:
-            if debugMode == True:
-                print "Data failed to upload to Xively."
-                print
-
     elif cmd == 2:
         try:
             accelX, accelY, accelZ = str(data[0]).split(",")
@@ -182,76 +184,127 @@ def parseString(data, cmd):
             print
 
 def xivelyUpdate(xivelyData):
-    XIVELY_API_KEY = 'MKPFAnS47P9FJAV2D7vw5M9MmHWdsEnj7zuCuJiaoyvua8jO'
-    XIVELY_FEED_ID = '1352564954'
-    api = xively.XivelyAPIClient(XIVELY_API_KEY)
-    feed = api.feeds.get(XIVELY_FEED_ID)
+    datastreams = xivelyGetDatastreams(feed)
+    try:
+        datastreams['dataUpdatedXively'].current_value = sensorData[0]
+        datastreams['dataUpdatedXively'].at = datetime.datetime.utcnow()
+        datastreams['dataUpdatedXively'].update()
 
-    """streamList = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop',
-                  'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']"""
+        datastreams['gpsLatXively'].current_value = sensorData[1]
+        datastreams['gpsLatXively'].at = datetime.datetime.utcnow()
+        datastreams['gpsLatXively'].update()
 
-    for x in range(0, 8):
-        print xivelyData[x]
-        time.sleep(1)
+        datastreams['gpsLonXively'].current_value = sensorData[2]
+        datastreams['gpsLonXively'].at = datetime.datetime.utcnow()
+        datastreams['gpsLonXively'].update()
 
-    streamList = xivelyAccessFeed(feed, True)
+        datastreams['satellitesXively'].current_value = sensorData[3]
+        datastreams['satellitesXively'].at = datetime.datetime.utcnow()
+        datastreams['satellitesXively'].update()
 
-    feed.datastreams = [
-        xively.Datastreams(id=streamList[0], current_value=xivelyData[0], at=now),
-        xively.Datastreams(id=streamList[1], current_value=xivelyData[1], at=now),
-        xively.Datastreams(id=streamList[2], current_value=xivelyData[2], at=now),
-        xively.Datastreams(id=streamList[3], current_value=xivelyData[3], at=now),
-        xively.Datastreams(id=streamList[4], current_value=xivelyData[4], at=now),
-        xively.Datastreams(id=streamList[5], current_value=xivelyData[5], at=now),
-        xively.Datastreams(id=streamList[6], current_value=xivelyData[6], at=now),
-        xively.Datastreams(id=streamList[7], current_value=xivelyData[7], at=now)
-    ]
-    feed.update()
+        datastreams['hdopXively'].current_value = sensorData[4]
+        datastreams['hdopXively'].at = datetime.datetime.utcnow()
+        datastreams['hdopXively'].update()
 
-def xivelyAccessFeed(feed, returnRequest):
+        datastreams['gpsAltitudeFtXively'].current_value = sensorData[5]
+        datastreams['gpsAltitudeFtXively'].at = datetime.datetime.utcnow()
+        datastreams['gpsAltitudeFtXively'].update()
+
+        datastreams['gpsSpeedMPHXively'].current_value = sensorData[6]
+        datastreams['gpsSpeedMPHXively'].at = datetime.datetime.utcnow()
+        datastreams['gpsSpeedMPHXively'].update()
+
+        datastreams['gpsCourseXively'].current_value = sensorData[7]
+        datastreams['gpsCourseXively'].at = datetime.datetime.utcnow()
+        datastreams['gpsCourseXively'].update()
+    except:
+        if debugMode == True:
+            print "Upload of data to Xively failed."
+            print
+
+def xivelyGetDatastreams(feed):
     try:
         dataUpdated = feed.datastreams.get('dataUpdated')
     except:
         dataUpdated = feed.datastreams.create('dataUpdated', tags='dataUpdated')
+        if debugMode == True:
+            print "dataUpdated datastream created."
     try:
         gpsLat = feed.datastreams.get('gpsLat')
     except:
         gpsLat = feed.datastreams.create('gpsLat', tags='gpsLat')
+        if debugMode == True:
+            print "gpsLat datastream created."
     try:
         gpsLon = feed.datastreams.get('gpsLon')
     except:
         gpsLon = feed.datastreams.create('gpsLon', tags='gpsLon')
+        if debugMode == True:
+            print "gpsLon datastream created."
     try:
         satellites = feed.datastreams.get('satellites')
     except:
         satellites = feed.datastreams.create('satellites', tags='satellites')
+        if debugMode == True:
+            print "satellites datastream created."
     try:
         hdop = feed.datastreams.get('hdop')
     except:
         hdop = feed.datastreams.create('hdop', tags='hdop')
+        if debugMode == True:
+            print "hdop datastream created."
     try:
         gpsAltitudeFt = feed.datastreams.get('gpsAltitudeFt')
     except:
         gpsAltitudeFt = feed.datastreams.create('gpsAltitudeFt', tags='gpsAltitudeFt')
+        if debugMode == True:
+            print "gpsAltitudeFt datastream created."
     try:
         gpsSpeedMPH = feed.datastreams.get('gpsSpeedMPH')
     except:
         gpsSpeedMPH = feed.datastreams.create('gpsSpeedMPH', tags='gpsSpeedMPH')
+        if debugMode == True:
+            print "gpsSpeedMPH datastream created."
     try:
         gpsCourse = feed.datastreams.get('gpsCourse')
     except:
         gpsCourse = feed.datastreams.create('gpsCourse', tags='gpsCourse')
+        if debugMode == True:
+            print "gpsCourse datastream created."
 
-    if returnRequest == True:
-        return {'dataUpdatedXively':dataUpdated, 'gpsLatXively':gpsLat, 'gpsLonXively':gpsLon,
-                'satellitesXively':satellites, 'hdopXively':hdop, 'gpsAltitudeFtXively':gpsAltitudeFt,
-                'gpsSpeedMPHXively':gpsSpeedMPH, 'gpsCourseXively':gpsCourse}
+    return {'dataUpdatedXively':dataUpdated, 'gpsLatXively':gpsLat, 'gpsLonXively':gpsLon,
+            'satellitesXively':satellites, 'hdopXively':hdop, 'gpsAltitudeFtXively':gpsAltitudeFt,
+            'gpsSpeedMPHXively':gpsSpeedMPH, 'gpsCourseXively':gpsCourse}
+
+def csvWriteData(sensorData):
+    localroot = '/home/pi/mystall-client/logs/'
+    filename = timeStamp(2) + '.csv'
+    filepath = localroot + filename
+    
+    if os.path.exists(filepath):
+        f = open(filepath, 'a')
+    else:
+        f = open(filepath, 'a+')
+        
+    for element in xivelyHeader:
+        f.write(element + ',')
+        f.write('\n')
+
+    for element in sensorData:
+        if type(element) == str:
+            f.write(element + ',')
+        if type(element) == list:
+            for i in element:
+                f.write(i + ',')
+    
+    f.write('\n')
+    f.close()    
 
 
 def captureImage():
     localroot = '/home/phil/datsun/images/'
     remoteroot = '/home/datsun/images/'
-    filename = timeStamp() + '.jpg'
+    filename = timeStamp(1) + '.jpg'
     localpath = localroot + filename
     remotepath = remoteroot + filename
 
@@ -261,6 +314,8 @@ def captureImage():
         time.sleep(4)
         camera.capture(localpath)
         camera.stop_preview()
+        if debugMode == True:
+            print "Image captured."
 
     try:
         ssh = paramiko.SSHClient()
@@ -271,19 +326,28 @@ def captureImage():
         sftp.close()
         ssh.close()
         if debugMode == True:
-            print "Image capture uploaded to server."
+            print "Uploaded to server."
+            print
     except:
         if debugMode == True:
-            print "Image capture upload failed."
+            print "FTP upload failed."
+            print
 
-def timeStamp():
+def timeStamp(cmd):
     month = strftime('%m', localtime())
     day = strftime('%d', localtime())
     year = strftime('%y', localtime())
     hour = strftime('%H', localtime())
     minute = strftime('%M', localtime())
     second = strftime('%S', localtime())
-    currentDateTime = month + day + year + "-" + hour + minute + second
+    if cmd == 1:
+        currentDateTime = month + day + year + "-" + hour + minute + second
+    elif cmd == 2:
+        currentDateTime = month + day + year
+    else:
+        if debugMode == True:
+            print "Invalid timeStamp() request command."
+            print
     return currentDateTime
 
 def syncDelay():
@@ -300,4 +364,26 @@ def st():
     time.sleep(.5)
 
 syncDelay()
-mainLoop()
+
+while True:
+    try:
+        while GPIO.input(12) == 1:
+            if sensorDebug == True:
+                for x in range(1, 4):
+                    sensorData = getSensorData(x)
+                    time.sleep(3)
+                debugDataPrint()
+            else:
+                while tripMode == False:
+                    sleepTime = 10
+                    mainLoop()
+                    if debugMode == True:    
+                        print "Data acquisition complete. Sleeping for " + str(sleepTime) + " seconds."
+                        print
+                    time.sleep(sleepTime)
+        syncDelay()
+    except KeyboardInterrupt or RuntimeError:
+        print "Keyboard interrupt or runtime error detected. Resetting RPi GPIO."
+        print
+        GPIO.cleanup()
+    
