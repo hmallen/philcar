@@ -13,7 +13,7 @@ except RuntimeError:
     print "Error importing RPi.GPIO! This is probably because you need superuser privileges. You can achieve this by using 'sudo' to run your script."
 
 debugMode = True
-sensorDebug = True
+sensorDebug = False
 firstLoop = True
 
 tripMode = False
@@ -375,7 +375,7 @@ while True:
                 debugDataPrint()
             else:
                 while tripMode == False:
-                    sleepTime = 10
+                    sleepTime = 60
                     mainLoop()
                     if debugMode == True:    
                         print "Data acquisition complete. Sleeping for " + str(sleepTime) + " seconds."
