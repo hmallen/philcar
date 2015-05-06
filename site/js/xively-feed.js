@@ -31,21 +31,7 @@ $(document).ready(function ($) {
             $(hdop).html(datastream["datastreams"]["hdop"]["current_value"]);
             $(gpsAltitudeFt).html(datastream["datastreams"]["gpsAltitudeFt"]["current_value"]);
             $(gpsSpeedMPH).html(datastream["datastreams"]["gpsSpeedMPH"]["current_value"]);
-            $(gpsCourse).html(datastream["datastreams"]["gpsCourse"]["current_value"]);
+        $(gpsCourse).html(datastream["datastreams"]["gpsCourse"]["current_value"]);
         });
     });
-
-    var update = new Date();
-    var timeString = update.toTimeString();
-    var dateString = update.toDateString();
-    var time = "";
-    var date = "";
-    for (var i = 0; i < 8; i++) {
-        time += timeString.charAt(i);
-    }
-    for (var j = 0; j < 10; j++) {
-        date += dateString.charAt(j);
-    }
-    var el = document.getElementById('xivLastUpdate');
-    el.innerHTML = time + '<br>' + date;
 });
