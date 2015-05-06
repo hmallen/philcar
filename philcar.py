@@ -25,7 +25,6 @@ if debugMode == True:
     print dateTimeLong
     print
 
-global feed
 XIVELY_API_KEY = 'MKPFAnS47P9FJAV2D7vw5M9MmHWdsEnj7zuCuJiaoyvua8jO'
 XIVELY_FEED_ID = '1352564954'
 api = xively.XivelyAPIClient(XIVELY_API_KEY)
@@ -46,7 +45,6 @@ time.sleep(1)
 
 def mainLoop():
     global firstLoop
-    global feed
     if firstLoop == True:
         datastreams = xivelyGetDatastreams(feed)
         datastreams['dataUpdatedXively'].max_value = None
@@ -198,7 +196,6 @@ def parseString(data, cmd):
             print
 
 def xivelyUpdate(xivelyData):
-    global feed
     datastreams = xivelyGetDatastreams(feed)
     try:
         datastreams['dataUpdatedXively'].current_value = sensorData[0]
