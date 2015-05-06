@@ -189,7 +189,7 @@ def parseString(data, cmd):
             print "Invalid command."
             print
 
-def xivelyUpdate(xivelyData):
+def xivelyUpdate(sensorData):
     datastreams = xivelyGetDatastreams(feed)
     try:
         datastreams['dataUpdatedXively'].current_value = sensorData[0]
@@ -378,20 +378,24 @@ syncDelay()
 
 while True:
     try:
-        while GPIO.input(12) == 1:
-            if sensorDebug == True:
-                for x in range(1, 4):
-                    sensorData = getSensorData(x)
-                    time.sleep(3)
-                debugDataPrint()
-            else:
-                while tripMode == False:
-                    sleepTime = 60
-                    mainLoop()
-                    if debugMode == True:    
-                        print "Data acquisition complete. Sleeping for " + str(sleepTime) + " seconds."
-                        print
-                    time.sleep(sleepTime)
+        if GPIO.input(12) == 1:
+            controlReady = True
+            while controlReady == True:
+                if sensorDebug == True:
+                    for x in range(1, 4):
+                        sensorData = getSensorData(x)
+                        time.sleep(3)
+                    debugDataPrint()
+                else:
+                    while tripMode == False and controlReady == True:
+                        if GPIO.input(12) == 0:
+                            controlReady == False
+                        sleepTime = 60
+                        mainLoop()
+                        if debugMode == True:    
+                            print "Data acquisition complete. Sleeping for " + str(sleepTime) + " seconds."
+                            print
+                        time.sleep(sleepTime)
         syncDelay()
     except KeyboardInterrupt or RuntimeError:
         print "Keyboard interrupt or runtime error detected. Resetting RPi GPIO."
