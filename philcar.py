@@ -32,8 +32,7 @@ feed = api.feeds.get(XIVELY_FEED_ID)
 global xivelyHeader
 xivelyHeader = ['dataUpdated', 'gpsLat', 'gpsLon', 'satellites', 'hdop', 'gpsAltitudeFt', 'gpsSpeedMPH', 'gpsCourse']
 
-GPIO.cleanup()
-time.sleep(3)
+
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(11, GPIO.OUT)
 GPIO.output(11, 1)
@@ -65,7 +64,6 @@ def mainLoop():
     if debugMode == True:
         print xivelyHeader
         print sensorData
-        time.sleep(10)
     xivelyUpdate(sensorData)
     csvWriteData(sensorData)
 
@@ -289,25 +287,28 @@ def csvWriteData(sensorData):
     localroot = '/home/phil/datsun/logs/'
     filename = timeStamp(2) + '.csv'
     filepath = localroot + filename
-    
-    if os.path.exists(filepath):
-        f = open(filepath, 'a')
-    else:
-        f = open(filepath, 'a+')
-        
-    for element in xivelyHeader:
-        f.write(element + ',')
-        f.write('\n')
-
-    for element in sensorData:
-        if type(element) == str:
+    try:
+        if os.path.exists(filepath):
+            f = open(filepath, 'a')
+        else:
+            f = open(filepath, 'a+')
+            
+        for element in xivelyHeader:
             f.write(element + ',')
-        if type(element) == list:
-            for i in element:
-                f.write(i + ',')
-    
-    f.write('\n')
-    f.close()    
+            f.write('\n')
+
+        for element in sensorData:
+            if type(element) == str:
+                f.write(element + ',')
+            if type(element) == list:
+                for i in element:
+                    f.write(i + ',')
+        
+        f.write('\n')
+        f.close()
+    except:
+        if debugMode == True:
+            print "Write to CSV log failed."
 
 
 def captureImage():
