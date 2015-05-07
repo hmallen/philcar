@@ -22,7 +22,6 @@
         <link rel="stylesheet" href="css/main.css">
 
         <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
-        <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
     </head>
     <body>
         <!--[if lt IE 8]>
@@ -68,26 +67,8 @@
           <p><b>Course:        </b><span id="gpsCourse"></span></p>
         </div>
         <div class="col-md-4">
-          <p>
-            <iframe
-              width="600"
-              height="450"
-              frameborder="0" style="border:0"
-              src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBQCYHsfgcnL6Gj2uckoaeN6PIWonWHDgg&q=Oak+Cliff,Dallas+TX">
-            </iframe>
-          </p>
-          <p>
-            <iframe
-              width="600"
-              height="450"
-              frameborder="0" style="border:0"
-              id="map-canvas">
-            </iframe>
-          </p>
-       </div>
-       <div class="col-md-4">
-        <div id="map-canvas"></div>
-       </div>
+          <div id="datsun-location" style="width:50%;height:264px;"></div>
+        </div>
       </div>
 
       <hr>
@@ -102,6 +83,7 @@
         <script src="js/vendor/bootstrap.min.js"></script>
         <script src="http://d23cj0cdvyoxg0.cloudfront.net/xivelyjs-1.0.4.min.js"></script>
         <script src="js/xively-feed.js"></script>
+        <script src="//d23cj0cdvyoxg0.cloudfront.net/xivelygmaps-0.1.1.min.js"></script>
         <script src="js/main.js"></script>
         <script>
             (function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=

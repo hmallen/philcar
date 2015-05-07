@@ -1,4 +1,17 @@
 $(document).ready(function ($) {
+  xively.setKey("MKPFAnS47P9FJAV2D7vw5M9MmHWdsEnj7zuCuJiaoyvua8jO");
+  var feedID = 1352564954;
+  var gpsLat;
+  var gpsLon
+  xively.feed.get(feedID, function (datastream) {
+    $(gpsLat).html(datastream["datastreams"]["3"]["current_value"]);
+    $(gpsLon).html(datastream["datastreams"]["4"]["current_value"]);
+    xively.feed.subscribe(feedID, function (event, datastream_updated) {
+      $(gpsLat).html(datastream["datastreams"]["3"]["current_value"]);
+      $(gpsLon).html(datastream["datastreams"]["4"]["current_value"]);
+    )};
+  )};
+
   var map;
   var TILE_SIZE = 256;
   var chicago = new google.maps.LatLng(41.850033,-87.6500523);
