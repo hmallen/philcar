@@ -68,6 +68,10 @@
         </div>
         <div class="col-md-4">
           <div id="datsun-location" style="width:50%;height:264px;"></div>
+          <script type="text/javascript">
+            xivelyGmaps.setKey("MKPFAnS47P9FJAV2D7vw5M9MmHWdsEnj7zuCuJiaoyvua8jO");
+            google.maps.event.addDomListener(window, 'load', xivelyGmaps.subscribe("1352564954"));
+          </script>
         </div>
       </div>
 
@@ -81,9 +85,10 @@
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
         <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
         <script src="js/vendor/bootstrap.min.js"></script>
-        <script src="http://d23cj0cdvyoxg0.cloudfront.net/xivelyjs-1.0.4.min.js"></script>
+        <script src="js/xivelyjs-1.0.4.min.js"></script>
         <script src="js/xively-feed.js"></script>
-        <script src="//d23cj0cdvyoxg0.cloudfront.net/xivelygmaps-0.1.1.min.js"></script>
+        <script src="js/xivelygmaps.js"></script>
+        <script type="text/javascript" src="//maps.googleapis.com/maps/api/js?key=AIzaSyBQCYHsfgcnL6Gj2uckoaeN6PIWonWHDgg&sensor=false"></script>
         <script src="js/main.js"></script>
         <script>
             (function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
