@@ -232,10 +232,17 @@ def xivelyUpdate(sensorData):
         datastreams['gpsCourseXively'].current_value = sensorData[7]
         datastreams['gpsCourseXively'].at = datetime.datetime.utcnow()
         datastreams['gpsCourseXively'].update()
+        
     except:
         if debugMode == True:
             print "Upload of data to Xively failed."
             print
+
+    try:
+        feed.location(
+    except:
+        print "Failed to update location."
+        print
 
 def xivelyGetDatastreams(feed):
     try:
