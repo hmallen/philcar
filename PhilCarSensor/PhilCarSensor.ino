@@ -22,6 +22,7 @@
 
 // Digital inputs
 const int calibButton = 2;  // Relay gating power to intruder siren
+const int tripPin = 9;
 // Digital outputs
 const int readyOut = 3;  // Ready signal for ArduBerry functions
 // Analog inputs
