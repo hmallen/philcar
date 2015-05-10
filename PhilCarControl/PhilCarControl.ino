@@ -44,6 +44,7 @@ const int rpiReadyIn = 6;  // Input to read ready state of RPi
 const int controlReadyOut = A1;  // Output to signal control system ready for RPi
 const int ledRelay = 2;  // Relay to power IR LED's for night-vision imaging
 const int sirenRelay = 3;  // Relay to trigger siren mounted on sensor unit enclosure
+const int tripPin = 7;  // Output to signal "trip mode" to both RPi (3.3V) and Sensor Unit (5V)
 
 const unsigned long normalUpdateInterval = 600000;  // Delay between normal data updates without command input (ms)
 
@@ -81,6 +82,8 @@ void setup() {
   digitalWrite(ledRelay, LOW);
   pinMode(controlReadyOut, OUTPUT);
   digitalWrite(controlReadyOut, LOW);
+  pinMode(tripPin, OUTPUT);
+  digitalWrite(tripPin, LOW);
   pinMode(tripSwitch, INPUT);
   pinMode(sensorReadyIn, INPUT);
   pinMode(rpiReadyIn, INPUT);
