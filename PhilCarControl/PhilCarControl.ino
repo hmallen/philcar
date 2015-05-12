@@ -1,10 +1,7 @@
-/*
+i8/*
   Control Unit (Phil's Car - 1973 Datsun 240Z)
  
- Rerouted pins for Mega usage:
- SD Card (SPI):
- 10 --> 53 (SS)
- 11 --> 51 (MOSI)
+ Rerouted pins for Mega usage:s
  12 --> 50 (MISO)
  13 --> 52 (SCK)
  RTC (I2C):
@@ -45,6 +42,8 @@ const int controlReadyOut = A1;  // Output to signal control system ready for RP
 const int ledRelay = 2;  // Relay to power IR LED's for night-vision imaging
 const int sirenRelay = 3;  // Relay to trigger siren mounted on sensor unit enclosure
 const int tripPin = 7;  // Output to signal "trip mode" to both RPi (3.3V) and Sensor Unit (5V)
+const int rpiReadyLED = 44;  // LED to show RPi status
+const int sensorReadyLED = 45;  // LED to show Sensor Unit status
 
 const unsigned long normalUpdateInterval = 600000;  // Delay between normal data updates without command input (ms)
 

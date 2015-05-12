@@ -25,6 +25,7 @@ const int calibButton = 2;  // Relay gating power to intruder siren
 const int tripPin = 9;
 // Digital outputs
 const int readyOut = 3;  // Ready signal for ArduBerry functions
+const int readyLED = 10;  // LED to indicate sensor operation
 // Analog inputs
 const int accelXPin = A15;  // Accelerometer X axis
 const int accelYPin = A14;  // Accelerometer Y axis
@@ -60,6 +61,8 @@ boolean dataUpdated = false;
 void setup() {
   pinMode(readyOut, OUTPUT);
   digitalWrite(readyOut, LOW);
+  pinMode(readyLED, OUTPUT);
+  digitalWrite(readyLED, LOW);
   pinMode(calibButton, INPUT);
 
   Serial.begin(9600);  // Debug Serial
@@ -119,6 +122,7 @@ void setup() {
   zeroSensors();  // Zero sensors before sending real data
 
   digitalWrite(readyOut, HIGH);
+  digitalWrite(readyLED, HIGH);
 #ifdef debugMode
   Serial.println(F("Setup complete."));
   Serial.println();
