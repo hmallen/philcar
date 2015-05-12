@@ -39,6 +39,7 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setup(11, GPIO.OUT)
 GPIO.output(11, 1)
 GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+GPIO.setup(13, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
 
 def mainLoop():
     global firstLoop
@@ -237,12 +238,13 @@ def xivelyUpdate(sensorData):
         if debugMode == True:
             print "Upload of data to Xively failed."
             print
-
+    """
     try:
-        feed.location(
+        feed.location(????)
     except:
         print "Failed to update location."
         print
+    """
 
 def xivelyGetDatastreams(feed):
     try:
@@ -404,13 +406,18 @@ while True:
                     time.sleep(3)
                 debugDataPrint()
             else:
-                while tripMode == False and GPIO.input(12) == 1:
+                while GPIO.input(12) == 1 and GPIO.input(13) == 0:
                     sleepTime = 60
                     mainLoop()
                     if debugMode == True:    
                         print "Data acquisition complete. Sleeping for " + str(sleepTime) + " seconds."
                         print
                     time.sleep(sleepTime)
+                while GPIO.input(12) == 1 and GPIO.input(13) == 1:
+                    if debugMode == True:
+                        print "Trip mode active."
+                        print
+                        time.sleep(10)
     except KeyboardInterrupt or RuntimeError:
         print "Keyboard interrupt or runtime error detected. Resetting RPi GPIO."
         print
